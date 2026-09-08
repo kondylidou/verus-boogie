@@ -144,6 +144,8 @@ structure BuildCtx where
       value (`length(scalar..bytes(x)) == 32`), matching how bodies index it.
       Built once from the decl set in `declsToBooleProgram`. -/
   wrapperInfo : Std.HashMap String (String × Nat) := {}
+  /-- Element type of the wrapped `[T; N]`, per wrapper datatype name (for `--u8-as-int` range facts). -/
+  wrapperElemTy : Std.HashMap String Typ := {}
   /-- Fields of each monomorphic single-constructor struct, keyed by its Boole
       datatype name.  Lets length facts recurse through datatype selector
       paths (`componentLenFacts`).  Wrapper structs (single `[T; N]` field)

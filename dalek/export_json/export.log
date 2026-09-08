@@ -1,0 +1,303 @@
+   Compiling curve25519-dalek v4.1.3 (/Users/kondylidou/Desktop/projects/dalek-lite/curve25519-dalek)
+warning: unexpected `cfg` condition name: `curve25519_dalek_backend`
+  --> curve25519-dalek/src/lib.rs:14:9
+   |
+14 |         curve25519_dalek_backend = "simd",
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: expected names are: `docsrs`, `feature`, `test`, `verus_keep_ghost`, `verus_keep_ghost_body`, `verus_no_vstd`, `verus_only`, and `verus_verify_core` and 31 more
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(curve25519_dalek_backend, values("simd"))'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(curve25519_dalek_backend, values(\"simd\"))");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: unexpected `cfg` condition name: `nightly`
+  --> curve25519-dalek/src/lib.rs:15:9
+   |
+15 |         nightly,
+   |         ^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(nightly)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(nightly)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `curve25519_dalek_backend`
+  --> curve25519-dalek/src/lib.rs:21:9
+   |
+21 |     all(curve25519_dalek_backend = "simd", nightly),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(curve25519_dalek_backend, values("simd"))'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(curve25519_dalek_backend, values(\"simd\"))");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `nightly`
+  --> curve25519-dalek/src/lib.rs:21:44
+   |
+21 |     all(curve25519_dalek_backend = "simd", nightly),
+   |                                            ^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(nightly)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(nightly)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `allow_unused_unsafe`
+  --> curve25519-dalek/src/lib.rs:36:13
+   |
+36 | #![cfg_attr(allow_unused_unsafe, allow(unused_unsafe))]
+   |             ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(allow_unused_unsafe)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(allow_unused_unsafe)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `curve25519_dalek_diagnostics`
+   --> curve25519-dalek/src/lib.rs:119:7
+    |
+119 | #[cfg(curve25519_dalek_diagnostics = "build")]
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(curve25519_dalek_diagnostics, values("build"))'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(curve25519_dalek_diagnostics, values(\"build\"))");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `curve25519_dalek_backend`
+  --> curve25519-dalek/src/constants.rs:33:14
+   |
+33 |     if #[cfg(curve25519_dalek_backend = "fiat")] {
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(curve25519_dalek_backend, values("fiat"))'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(curve25519_dalek_backend, values(\"fiat\"))");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `curve25519_dalek_bits`
+  --> curve25519-dalek/src/constants.rs:39:15
+   |
+39 |         #[cfg(curve25519_dalek_bits = "32")]
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(curve25519_dalek_bits, values("32"))'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(curve25519_dalek_bits, values(\"32\"))");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `curve25519_dalek_bits`
+  --> curve25519-dalek/src/constants.rs:41:15
+   |
+41 |         #[cfg(curve25519_dalek_bits = "64")]
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(curve25519_dalek_bits, values("64"))'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(curve25519_dalek_bits, values(\"64\"))");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `curve25519_dalek_bits`
+ --> curve25519-dalek/src/lizard/mod.rs:4:7
+  |
+4 | #[cfg(curve25519_dalek_bits = "32")]
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: consider using a Cargo feature instead
+  = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+           [lints.rust]
+           unexpected_cfgs = { level = "warn", check-cfg = ['cfg(curve25519_dalek_bits, values("32"))'] }
+  = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(curve25519_dalek_bits, values(\"32\"))");` to the top of the `build.rs`
+  = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `curve25519_dalek_bits`
+ --> curve25519-dalek/src/lizard/mod.rs:7:7
+  |
+7 | #[cfg(curve25519_dalek_bits = "64")]
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: consider using a Cargo feature instead
+  = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+           [lints.rust]
+           unexpected_cfgs = { level = "warn", check-cfg = ['cfg(curve25519_dalek_bits, values("64"))'] }
+  = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(curve25519_dalek_bits, values(\"64\"))");` to the top of the `build.rs`
+  = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `curve25519_dalek_bits`
+ --> curve25519-dalek/src/lizard/lizard_constants.rs:4:7
+  |
+4 | #[cfg(curve25519_dalek_bits = "64")]
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: consider using a Cargo feature instead
+  = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+           [lints.rust]
+           unexpected_cfgs = { level = "warn", check-cfg = ['cfg(curve25519_dalek_bits, values("64"))'] }
+  = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(curve25519_dalek_bits, values(\"64\"))");` to the top of the `build.rs`
+  = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `curve25519_dalek_bits`
+ --> curve25519-dalek/src/lizard/lizard_constants.rs:7:7
+  |
+7 | #[cfg(curve25519_dalek_bits = "32")]
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: consider using a Cargo feature instead
+  = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+           [lints.rust]
+           unexpected_cfgs = { level = "warn", check-cfg = ['cfg(curve25519_dalek_bits, values("32"))'] }
+  = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(curve25519_dalek_bits, values(\"32\"))");` to the top of the `build.rs`
+  = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unused doc comment
+   --> curve25519-dalek/src/backend/serial/u64/field.rs:499:9
+    |
+499 |         /// Helper function to multiply two 64-bit integers with 128
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+505 |         let a: &[u64; 5] = &self.limbs;
+    |         ------------------------------- rustdoc does not generate documentation for statements
+    |
+    = help: use `//` for a plain comment
+    = note: `#[warn(unused_doc_comments)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused doc comment
+   --> curve25519-dalek/src/backend/serial/u64/field.rs:500:9
+    |
+500 |         /// bits of output.
+    |         ^^^^^^^^^^^^^^^^^^^
+...
+505 |         let a: &[u64; 5] = &self.limbs;
+    |         ------------------------------- rustdoc does not generate documentation for statements
+    |
+    = help: use `//` for a plain comment
+
+warning: unused doc comment
+    --> curve25519-dalek/src/backend/serial/u64/field.rs:1165:9
+     |
+1165 |         /// Multiply two 64-bit integers with 128 bits of output.
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+1172 |         let mut a: [u64; 5] = self.limbs;
+     |         --------------------------------- rustdoc does not generate documentation for statements
+     |
+     = help: use `//` for a plain comment
+
+warning: unused doc comment
+  --> curve25519-dalek/src/backend/serial/u64/constants.rs:42:1
+   |
+42 | /// sqrt(-486664)
+   | ^^^^^^^^^^^^^^^^^ rustdoc does not generate documentation for macro invocations
+   |
+   = help: to document an item produced by a macro, the macro must produce the documentation as part of its expansion
+
+warning: use of deprecated method `vstd::prelude::OptionAdditionalFns::is_None`: is_Variant is deprecated - use `->` or `matches` instead: https://verus-lang.github.io/verus/guide/datatypes_enum.html
+   --> curve25519-dalek/src/lizard/lizard_ristretto.rs:259:56
+    |
+259 |                     spec_lizard_decode_ristretto(x, y).is_None()
+    |                                                        ^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated method `vstd::prelude::OptionAdditionalFns::is_Some`: is_Variant is deprecated - use `->` or `matches` instead: https://verus-lang.github.io/verus/guide/datatypes_enum.html
+   --> curve25519-dalek/src/lizard/lizard_ristretto.rs:288:47
+    |
+288 |                 n_found >= 1 <==> passed_data.is_Some(),
+    |                                               ^^^^^^^
+
+warning: use of deprecated method `vstd::prelude::OptionAdditionalFns::is_Some`: is_Variant is deprecated - use `->` or `matches` instead: https://verus-lang.github.io/verus/guide/datatypes_enum.html
+   --> curve25519-dalek/src/lizard/lizard_ristretto.rs:289:29
+    |
+289 |                 passed_data.is_Some() ==> passed_data.unwrap().len() == 16,
+    |                             ^^^^^^^
+
+warning: use of deprecated method `vstd::prelude::OptionAdditionalFns::is_Some`: is_Variant is deprecated - use `->` or `matches` instead: https://verus-lang.github.io/verus/guide/datatypes_enum.html
+   --> curve25519-dalek/src/lizard/lizard_ristretto.rs:290:29
+    |
+290 |                 passed_data.is_Some() ==> is_lizard_preimage_coset(
+    |                             ^^^^^^^
+
+warning: use of deprecated method `vstd::prelude::OptionAdditionalFns::is_Some`: is_Variant is deprecated - use `->` or `matches` instead: https://verus-lang.github.io/verus/guide/datatypes_enum.html
+   --> curve25519-dalek/src/lizard/lizard_ristretto.rs:294:29
+    |
+294 |                 passed_data.is_Some() ==> forall|i: int|
+    |                             ^^^^^^^
+
+warning: use of deprecated method `vstd::prelude::OptionAdditionalFns::is_None`: is_Variant is deprecated - use `->` or `matches` instead: https://verus-lang.github.io/verus/guide/datatypes_enum.html
+   --> curve25519-dalek/src/lizard/lizard_ristretto.rs:424:63
+    |
+424 |                 None => ({ spec_lizard_decode_ristretto(x, y).is_None() }),
+    |                                                               ^^^^^^^
+
+warning: use of deprecated method `vstd::prelude::OptionAdditionalFns::is_Some`: is_Variant is deprecated - use `->` or `matches` instead: https://verus-lang.github.io/verus/guide/datatypes_enum.html
+    --> curve25519-dalek/src/lemmas/lizard_lemmas.rs:1301:64
+     |
+1301 |         spec_sha_consistent_count(point) >= 1 <==> passed_data.is_Some(),
+     |                                                                ^^^^^^^
+
+warning: use of deprecated method `vstd::prelude::OptionAdditionalFns::is_Some`: is_Variant is deprecated - use `->` or `matches` instead: https://verus-lang.github.io/verus/guide/datatypes_enum.html
+    --> curve25519-dalek/src/lemmas/lizard_lemmas.rs:1302:21
+     |
+1302 |         passed_data.is_Some() ==> ({
+     |                     ^^^^^^^
+
+warning: use of deprecated method `vstd::prelude::OptionAdditionalFns::is_None`: is_Variant is deprecated - use `->` or `matches` instead: https://verus-lang.github.io/verus/guide/datatypes_enum.html
+   --> curve25519-dalek/src/specs/lizard_specs.rs:734:44
+    |
+734 |         spec_lizard_decode_ristretto(x, y).is_None(),
+    |                                            ^^^^^^^
+
+warning: cannot use external trait subtle::ConditionallyNegatable as a bound without declaring the trait (use #[verifier::external_trait_specification] to declare the trait); this is a warning for now but will eventually be an error
+   --> curve25519-dalek/src/backend/serial/u64/subtle_assumes.rs:278:1
+    |
+278 | / pub fn conditional_negate_generic<T>(a: &mut T, choice: Choice) where
+279 | |     T: subtle::ConditionallyNegatable,
+    | |______________________________________^
+
+warning: cannot use external trait subtle::ConditionallySelectable as a bound without declaring the trait (use #[verifier::external_trait_specification] to declare the trait); this is a warning for now but will eventually be an error
+   --> curve25519-dalek/src/backend/serial/u64/subtle_assumes.rs:398:1
+    |
+398 | / pub fn conditional_assign_generic<T>(a: &mut T, b: &T, choice: Choice) where
+399 | |     T: subtle::ConditionallySelectable,
+    | |_______________________________________^
+
+warning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl
+    --> curve25519-dalek/src/ristretto.rs:3767:10
+     |
+3767 | #[derive(Clone)]
+     |          ^^^^^
+
+note: verifying module scalar
+
+note: verifying module scalar_helpers
+
+note: verifying module specs::core_specs
+
+note: verifying module specs::scalar52_specs
+
+note: verifying module specs::scalar_specs
+
+verification results:: 127 verified, 0 errors (partial verification with `--verify-*`)
+warning: `curve25519-dalek` (lib) generated 46 warnings (17 duplicates)
+    Finished `dev` profile [optimized + debuginfo] target(s) in 1m 08s

@@ -38,7 +38,7 @@ private def mkCastFnDecl (lowerType : TypeLowerer)
       (BooleDDM.TypeP.expr (← lowerType inputTy))
   let inputBindings := BooleDDM.Bindings.mkBindings default (ann #[inputBinding])
   let outputTy' ← lowerType outputTy
-  pure (.command_fndecl default nameAnn typeArgs inputBindings outputTy')
+  pure (.command_fndecl default VerusLean.Boole.Builder.noMd nameAnn typeArgs inputBindings outputTy')
 
 private def mkAbstractTypeDecl (name : String) (params : List String) : BuildM BCmd := do
   addFreeVars #[name]
@@ -48,14 +48,14 @@ private def mkAbstractTypeDecl (name : String) (params : List String) : BuildM B
       let bindings := params.toArray.map fun p =>
         BooleDDM.Binding.mkBinding default (ann p) (BooleDDM.TypeP.type default)
       ann (some (BooleDDM.Bindings.mkBindings default (ann bindings)))
-  pure (.command_typedecl default (ann name) args)
+  pure (.command_typedecl default VerusLean.Boole.Builder.noMd (ann name) args)
 
 private def mkUnitDatatypeDecl : BuildM BCmd := do
   addFreeVars #[unitTypeName, unitCtorName]
   let ctor := BooleDDM.Constructor.constructor_mk default (ann unitCtorName) (ann none)
   let constrList := BooleDDM.ConstructorList.constructorListAtom default ctor
   let dtDecl := BooleDDM.DatatypeDecl.datatype_decl default (ann unitTypeName) (ann none) constrList
-  pure (.command_datatypes default (ann #[dtDecl]))
+  pure (.command_datatypes default VerusLean.Boole.Builder.noMd (ann #[dtDecl]))
 
 /-- Emit the polymorphic 2-ary tuple datatype:
     `datatype Tuple2 (T0 : Type, T1 : Type) { Tuple2_ctor_2(_0 : T0, _1 : T1) };`.
@@ -80,7 +80,7 @@ private def mkTupleDatatypeDecl : BuildM BCmd := do
   let ctor := BooleDDM.Constructor.constructor_mk default (ann tupleCtorName) ctorArgs
   let constrList := BooleDDM.ConstructorList.constructorListAtom default ctor
   let dtDecl := BooleDDM.DatatypeDecl.datatype_decl default (ann tupleTypeName) typeArgs constrList
-  pure (.command_datatypes default (ann #[dtDecl]))
+  pure (.command_datatypes default VerusLean.Boole.Builder.noMd (ann #[dtDecl]))
 
 /-- Emit `function Seq_lib_zip_with<A, B>(s: Sequence A, t: Sequence B):
     Sequence (Tuple2 A B);` as an abstract declaration. The return type
@@ -104,7 +104,7 @@ private def mkSeqZipWithDecl : BuildM BCmd := do
   let inputBindings :=
     BooleDDM.Bindings.mkBindings default (ann #[sInput, tInput])
   let outputTy : BType := seqTy (fvarTy tupleIdx #[aTy, bTy])
-  pure (.command_fndecl default (ann fname) typeArgs inputBindings outputTy)
+  pure (.command_fndecl default VerusLean.Boole.Builder.noMd (ann fname) typeArgs inputBindings outputTy)
 
 private def mkArrayFillDecl : BuildM BCmd := do
   let fname := "Array_array_fill_for_copy_types"
@@ -119,7 +119,7 @@ private def mkArrayFillDecl : BuildM BCmd := do
   let inputBindings :=
     BooleDDM.Bindings.mkBindings default (ann #[input])
   let outputTy : BType := seqTy tTy
-  pure (.command_fndecl default (ann fname) typeArgs inputBindings outputTy)
+  pure (.command_fndecl default VerusLean.Boole.Builder.noMd (ann fname) typeArgs inputBindings outputTy)
 
 /-- Emit an abstract (bodyless) polymorphic function declaration
     `function <name><typeParams> (<params>) : <retTy>;`.  Generalises
@@ -136,7 +136,7 @@ private def mkAbstractPolyFnDecl (name : String) (typeParams : List String)
   let inputBindings := BooleDDM.Bindings.mkBindings default
     (ann (params.toArray.map (fun (n, t) =>
       BooleDDM.Binding.mkBinding default (ann n) (BooleDDM.TypeP.expr t))))
-  pure (.command_fndecl default (ann name) typeArgs inputBindings retTy)
+  pure (.command_fndecl default VerusLean.Boole.Builder.noMd (ann name) typeArgs inputBindings retTy)
 
 /-- Build the abstract declaration for a higher-order / Set-typed Seq builtin
     via `mkAbstractPolyFnDecl`.  The Set-typed cases (`seqLibToSet`,

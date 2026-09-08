@@ -36,12 +36,12 @@ def strTy  : BType := .string default
 
 def bvTy (w : Nat) : BType :=
   match w with
-  | 1  => .bv1 default
-  | 8  => .bv8 default
-  | 16 => .bv16 default
-  | 32 => .bv32 default
-  | 64 => .bv64 default
-  | 128 => .bv128 default
+  | 1  => .bv default (.W1 default)
+  | 8  => .bv default (.W8 default)
+  | 16 => .bv default (.W16 default)
+  | 32 => .bv default (.W32 default)
+  | 64 => .bv default (.W64 default)
+  | 128 => .bv default (.W128 default)
   | _  => panic! s!"bvTy: unsupported bitvector width {w} (expected 1|8|16|32|64|128); \
     callers must filter via Coercions.isSupportedBvWidth"
 
@@ -180,6 +180,8 @@ def mapSet (m k v : BExpr) : BExpr := .map_set default unknownTy unknownTy m k v
 /-- Sequence length. -/
 def seqLength (s : BExpr) : BExpr := .seq_length default unknownTy s
 def seqSelect (s i : BExpr) : BExpr := .seq_select default unknownTy s i
+/-- `Sequence.select!(s, i)`: the total read (no definedness obligation). -/
+def seqSelectTotal (s i : BExpr) : BExpr := .seq_select_unsafe default unknownTy s i
 def seqUpdate (s i v : BExpr) : BExpr := .seq_update default unknownTy s i v
 
 /-- Empty sequence carrying an explicit element type: `Sequence.empty<T>()`.
@@ -224,6 +226,10 @@ def lambdaExpr (binds : Array (String × BType)) (body : BExpr) : BExpr :=
 
 /-! ## Statement constructors -/
 
+/-- Empty metadata-annotation slot: current BooleDDM statements carry an optional
+    `@[...]` metadata annotation right after the source range. -/
+def noMd : StrataDDM.Ann (Option (BooleDDM.MetadataAnn SourceRange)) SourceRange := ann none
+
 private def mkLabel (label : String) : StrataDDM.Ann (Option (BooleDDM.Label SourceRange)) SourceRange :=
   if label.isEmpty || label == "||" then
     ann none
@@ -233,20 +239,20 @@ private def mkLabel (label : String) : StrataDDM.Ann (Option (BooleDDM.Label Sou
 def varStmt (name : String) (ty : BType) : BStmt :=
   let bind := Bind.bind_mk default (ann name) (ann none) ty
   let decls := DeclList.declAtom default bind
-  .varStatement default decls
+  .varStatement default noMd decls
 
 def initStmt (name : String) (ty : BType) (rhs : BExpr) : BStmt :=
-  .initStatement default ty (ann name) rhs
+  .initStatement default noMd ty (ann name) rhs
 
 def setStmtTyped (ty : BType) (name : String) (rhs : BExpr) : BStmt :=
   let lhs := BooleDDM.Lhs.lhsIdent default (ann name)
-  .assign default ty lhs rhs
+  .assign default noMd ty lhs rhs
 
 def setStmt (name : String) (rhs : BExpr) : BStmt :=
   setStmtTyped unknownTy name rhs
 
 def havocStmt (name : String) : BStmt :=
-  .havoc_statement default (ann name)
+  .havoc_statement default noMd (ann name)
 
 /-- Build `lhs := choose v : T :: pred;`.  Strata lowers this to
     `havoc lhs; assume pred[v ↦ lhs];` in the verify pipeline (see
@@ -258,22 +264,22 @@ def chooseAssignStmt (lhs : String) (v : String) (vTy : BType) (pred : BExpr) : 
   .choose_assign default (ann lhs) bind pred
 
 def assertStmt (label : String) (e : BExpr) : BStmt :=
-  .assert default (ann none) (mkLabel label) e
+  .assert default noMd (mkLabel label) e
 
 def assumeStmt (label : String) (e : BExpr) : BStmt :=
-  .assume default (mkLabel label) e
+  .assume default noMd (mkLabel label) e
 
 def coverStmt (label : String) (e : BExpr) : BStmt :=
-  .cover default (ann none) (mkLabel label) e
+  .cover default noMd (mkLabel label) e
 
 def callStmt (lhs : Array String) (pname : String) (args : Array BExpr) : BStmt :=
   if lhs.isEmpty then
-    .call_statement default (ann pname) (ann (args.map (.callArgExpr default ·)))
+    .call_statement default noMd (ann pname) (ann (args.map (.callArgExpr default ·)))
   else
     .boole_call_statement default (ann (lhs.map ann)) (ann pname) (ann args)
 
 def blockStmt (label : String) (body : Array BStmt) : BStmt :=
-  .block_statement default (ann label) (.block default (ann body))
+  .block_statement default noMd (ann label) (.block default (ann body))
 
 def iteStmt (cond : BExpr) (thenBody : Array BStmt) (elseBody : Array BStmt) : BStmt :=
   let thenBlock := BooleDDM.Block.block default (ann thenBody)
@@ -282,7 +288,7 @@ def iteStmt (cond : BExpr) (thenBody : Array BStmt) (elseBody : Array BStmt) : B
       BooleDDM.Else.else0 default
     else
       .else1 default (.block default (ann elseBody))
-  .if_statement default (.condDet default cond) thenBlock elseNode
+  .if_statement default noMd (.condDet default cond) thenBlock elseNode
 
 private def invsFromArray (invs : Array BExpr) : BooleDDM.Invariants SourceRange :=
   invs.foldl (fun acc e =>
@@ -296,7 +302,7 @@ def mkMeasure (m : Option BExpr) : StrataDDM.Ann (Option (BooleDDM.Measure Sourc
 
 def whileStmt (guard : BExpr) (measure : Option BExpr)
     (invs : Array BExpr) (body : Array BStmt) : BStmt :=
-  .while_statement default (.condDet default guard) (mkMeasure measure)
+  .while_statement default noMd (.condDet default guard) (mkMeasure measure)
     (invsFromArray invs) (.block default (ann body))
 
 def forToStmt (loopVar : String) (loopTy : BType)
@@ -313,13 +319,13 @@ def forToStmt (loopVar : String) (loopTy : BType)
 -- break vs. continue, "never used").  Only labeled exits exist now; the
 -- sole caller (`.BreakOrContinue`) already rejects the unlabeled case.
 def exitStmt (label : String) : BStmt :=
-  .exit_statement default (ann label)
+  .exit_statement default noMd (ann label)
 
 /-- Early return: emit `exit <procName>;`. Strata's procedure translation
     wraps the body in a labeled block named after the procedure, so exiting
     the block named `procName` exits the procedure. Callers that want to
     "return e" should set the output variable first, then call this. -/
 def returnStmt (procName : String) : BStmt :=
-  .exit_statement default (ann procName)
+  .exit_statement default noMd (ann procName)
 
 end VerusLean.Boole.Builder

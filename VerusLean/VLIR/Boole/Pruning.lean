@@ -85,7 +85,7 @@ partial def stmCallRefs : Stm → List String
   | .Block stms => stms.flatMap stmCallRefs
 
 partial def declRefs : Decl → List String
-  | .assertion _ => []
+  | .assertion a => expCallRefs a.body
   | .specFn f =>
     -- `recommends` lower to `requires`, so their callees count as references.
     (f.body.map expCallRefs).getD [] ++ f.recommends.flatMap expCallRefs
@@ -129,6 +129,64 @@ def pruneUnreferencedImpls (decls : List Decl) : List Decl :=
       | some n => kept.contains n
       | none => true
     else true)
+
+
+/-! ## Entry-point pruning (`--only`) -/
+
+/-- True iff `name` designates the Boole decl name `n`: exact match, or `n`
+    ends with `_name` (so `sum_of_slice` selects `Scalar_sum_of_slice`). -/
+def entryMatches (name n : String) : Bool :=
+  n == name || n.endsWith ("_" ++ name)
+
+/-- Keep only the declarations transitively reachable (through calls in bodies
+    and contracts) from the named entry functions.  Type declarations
+    (`struct`/`enum`) are always kept; module-level `assertion`s are dropped.
+    A `mutualBlock` is kept iff one of its members is reachable. -/
+partial def pruneToEntries (entries : List String) (decls : List Decl) : List Decl :=
+  if entries.isEmpty then decls else
+  let named := decls.filter (fun d => (declName? d).isSome)
+  let seed := named.filterMap (fun d =>
+    match declName? d with
+    | some n => if entries.any (fun e => entryMatches e n) then some n else none
+    | none => none)
+  let rec loop (fuel : Nat) (keep : List String) : List String :=
+    match fuel with
+    | 0 => keep
+    | fuel + 1 =>
+      let kept := decls.filter (fun d =>
+        match d with
+        | .mutualBlock ds => ds.any (fun m => (declName? m).any keep.contains)
+        | _ => (declName? d).any keep.contains)
+      let next := (keep ++ kept.flatMap declRefs).eraseDups
+      if next.length == keep.length then keep else loop fuel next
+  let keep := loop (decls.length + 1) seed.eraseDups
+  let declared := decls.filterMap declName?
+  decls.filter (fun d =>
+    match d with
+    | .struct _ | .enum _ => true
+    -- an assertion stays when it refers to a kept declaration and to nothing dropped
+    | .assertion a =>
+      let refs := expCallRefs a.body
+      refs.any keep.contains && refs.all (fun r => !declared.contains r || keep.contains r)
+    | .mutualBlock ds => ds.any (fun m => (declName? m).any keep.contains)
+    | _ => (declName? d).any keep.contains)
+
+
+/-- With `--only`, every reachable exec or proof function other than the entry
+    points is emitted as a contract stub: its body is dropped (`Block []` /
+    `none`), which `Translate` lowers to `{ assume false; }`, so callers use the
+    callee's `requires`/`ensures` only — the callee is verified separately.
+    Spec functions keep their bodies: they are definitions. -/
+def stubNonEntries (entries : List String) (decls : List Decl) : List Decl :=
+  if entries.isEmpty then decls else
+  let isEntry (d : Decl) : Bool :=
+    (declName? d).any (fun n => entries.any (fun e => entryMatches e n))
+  let rec go : Decl → Decl
+    | .execFn f => if isEntry (.execFn f) then .execFn f else .execFn { f with body := .Block [], decreases := [], locals := [] }
+    | .proofFn f => if isEntry (.proofFn f) then .proofFn f else .proofFn { f with body := none, decreases := [], locals := [] }
+    | .mutualBlock ds => .mutualBlock (ds.map go)
+    | d => d
+  decls.map go
 
 /-- Identify vstd spec fns that came in as uninterpreted (`spec_axioms: null`
     in the JSON) — these are kept after parsing because exec wrappers can

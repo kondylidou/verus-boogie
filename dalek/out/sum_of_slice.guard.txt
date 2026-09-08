@@ -1,0 +1,139 @@
+Obligation: sum_of_scalars_body_calls_sum_of_scalars_0
+Property: assert
+Result: ✅ pass
+
+Obligation: sum_of_scalars_body_calls_Sequence.select_1
+Property: out-of-bounds access check
+Result: ✅ pass
+
+Obligation: sum_of_scalars_terminates_0
+Property: assert
+Result: ✅ pass
+
+Obligation: sum_of_scalars_terminates_1
+Property: assert
+Result: ✅ pass
+
+Obligation: Scalar_add_ensures_3_8446
+Property: assert
+Result: ✅ pass
+
+Obligation: Scalar_add_ensures_5_8514
+Property: assert
+Result: ✅ pass
+
+Obligation: Scalar_add_ensures_6_8589
+Property: assert
+Result: ✅ pass
+
+Obligation: Scalar_add_ensures_7_8684
+Property: assert
+Result: ✅ pass
+
+Obligation: sum_of_slice_pre_sum_of_slice_requires_9_8830_calls_Sequence.select_0
+Property: out-of-bounds access check
+Result: ✅ pass
+
+Obligation: sum_of_slice_pre_sum_of_slice_requires_11_8988_calls_Sequence.select_0
+Property: out-of-bounds access check
+Result: ✅ pass
+
+Obligation: sum_of_slice_post_sum_of_slice_ensures_14_9193_calls_sum_of_scalars_0
+Property: assert
+Result: ✅ pass
+
+Obligation: loop_invariant_calls_Sequence.select_0
+Property: out-of-bounds access check
+Result: ✅ pass
+
+Obligation: loop_invariant_calls_sum_of_scalars_0
+Property: assert
+Result: ✅ pass
+
+Obligation: insertLoopInvAssert_entry_invariant_loop_10_0
+Property: assert
+Result: ✅ pass
+
+Obligation: insertLoopInvAssert_entry_invariant_loop_10_1
+Property: assert
+Result: ✅ pass
+
+Obligation: insertLoopInvAssert_entry_invariant_loop_10_2
+Property: assert
+Result: ✅ pass
+
+Obligation: insertLoopInvAssert_entry_invariant_loop_10_3
+Property: assert
+Result: ✅ pass
+
+Obligation: insertLoopInvAssert_entry_invariant_loop_10_4
+Property: assert
+Result: ✅ pass
+
+Obligation: insertLoopInvAssert_entry_invariant_loop_10_5
+Property: assert
+Result: ✅ pass
+
+Obligation: insertLoopInvAssert_entry_invariant_loop_10_6
+Property: assert
+Result: ✅ pass
+
+Obligation: init_calls_Sequence.select_0
+Property: out-of-bounds access check
+Result: ✅ pass
+
+Obligation: callElimAssert_Scalar_add_requires_1_8390_3
+Property: assert
+Result: ✅ pass
+
+Obligation: callElimAssert_Scalar_add_requires_2_8418_4
+Property: assert
+Result: ✅ pass
+
+Obligation: callElimAssert_Scalar_add_requires_4_8475_5
+Property: assert
+Result: ✅ pass
+
+Obligation: insertLoopInvAssert_arbitrary_iter_maintain_invariant_loop_10_0
+Property: assert
+Result: ✅ pass
+
+Obligation: insertLoopInvAssert_arbitrary_iter_maintain_invariant_loop_10_1
+Property: assert
+Result: ✅ pass
+
+Obligation: insertLoopInvAssert_arbitrary_iter_maintain_invariant_loop_10_2
+Property: assert
+Result: ✅ pass
+
+Obligation: insertLoopInvAssert_arbitrary_iter_maintain_invariant_loop_10_3
+Property: assert
+Result: ✅ pass
+
+Obligation: insertLoopInvAssert_arbitrary_iter_maintain_invariant_loop_10_4
+Property: assert
+Result: ✅ pass
+
+Obligation: insertLoopInvAssert_arbitrary_iter_maintain_invariant_loop_10_5
+Property: assert
+Result: ✅ pass
+
+Obligation: insertLoopInvAssert_arbitrary_iter_maintain_invariant_loop_10_6
+Property: assert
+Result: ✅ pass
+
+Obligation: sum_of_slice_ensures_10_8959
+Property: assert
+Result: ✅ pass
+
+Obligation: sum_of_slice_ensures_12_9107
+Property: assert
+Result: ✅ pass
+
+Obligation: sum_of_slice_ensures_13_9154
+Property: assert
+Result: ✅ pass
+
+Obligation: sum_of_slice_ensures_14_9193
+Property: assert
+Result: ✅ pass

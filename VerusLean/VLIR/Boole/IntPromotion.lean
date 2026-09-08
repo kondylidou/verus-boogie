@@ -91,6 +91,13 @@ private def isTransparentCallName (name : Ident) : Bool :=
     || isArrayAsSliceName name || isSliceIntoVecName name
     || isClonedName name
 
+/-- `x as int` / `x as nat` (possibly boxed): the value leaves bv space. -/
+private partial def isMathCast : Exp → Bool
+  | .Unary (.Box _) e => isMathCast e
+  | .Unary (.Clip .Int _) _ => true
+  | .Unary (.Clip .Nat _) _ => true
+  | _ => false
+
 private def seqCallArgCtxs? (fname : String) : Option (List Ctx) :=
   if fname == "Seq_index" then
     some [.safe, .seqIdx]
@@ -341,8 +348,10 @@ mutual
         else
           -- Opaque user/std call.  Conservatively reject any candidate
           -- appearing as an argument: we can't see the param types here, and
-          -- even if we could the param is most likely bv-typed.
-          args.foldl (fun s e => visitExpAux s shadowed .reject e) s
+          -- even if we could the param is most likely bv-typed.  Exception: an
+          -- argument written `x as int` / `x as nat` (a `Clip` to a
+          -- mathematical range) reaches the callee as an integer — int-safe.
+          args.foldl (fun s e => visitExpAux s shadowed (if isMathCast e then .safe else .reject) e) s
 
   /-- Visit a known call by its per-argument contexts.  Arity mismatches
       are treated as opaque/rejecting instead of partially applying a

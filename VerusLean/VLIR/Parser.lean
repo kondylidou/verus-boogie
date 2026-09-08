@@ -43,6 +43,11 @@ structure ParserState where
       may appear in `resolved_method` but should stay on existing built-in
       lowering paths. -/
   currentKrate : String := ""
+  /-- Declarations skipped because their JSON did not parse (one message each);
+      reported as warnings by `Decls.fromFile?`.  A whole-module export
+      contains constructs the translator does not model; those must not abort
+      the declarations it does. -/
+  skipped : Array String := #[]
   expectedType : Typ := .Bool
   /-- Set while parsing the direct child of an `as int` / `as nat` `Clip`.
       Suppresses the synthesized arithmetic-promotion `Clip` on that child:
@@ -2322,9 +2327,18 @@ partial def Decls.fromJson? (j : Json) : VParser (String × List Decl × List De
     back from the hash maps at the end.
   -/
   let _ ← declsArr.mapM (fun j => do
-    match ← Decl.fromJson j with
-    | none => return ()
-    | some decl => addDecl decl)
+    -- A declaration that fails to parse is skipped, not fatal: the state is
+    -- restored to before the attempt and the failure is recorded.
+    let st ← get
+    try
+      match ← Decl.fromJson j with
+      | none => return ()
+      | some decl => addDecl decl
+    catch e =>
+      let name := match j.getObjValAs? String "DeclType" with
+        | .ok dt => dt
+        | .error _ => "?"
+      set { st with skipped := st.skipped.push s!"{name}: {e}" })
 
   let defs ← getDefs
   let thms ← getThms
@@ -2338,7 +2352,10 @@ partial def Decls.fromFile? (path : String) :
   let jsonStr ← IO.FS.readFile path
   let json ← IO.ofExcept <| Json.parse jsonStr
   match Decls.fromJson? json default with
-  | .ok (krate, defs, thms) st => return .ok (krate, defs, thms, st.callSiteTypes)
+  | .ok (krate, defs, thms) st =>
+    for w in st.skipped do
+      IO.eprintln s!"warning: {path}: skipped declaration ({w})"
+    return .ok (krate, defs, thms, st.callSiteTypes)
   | .error e _ => return .error e
 
 end VerusLean

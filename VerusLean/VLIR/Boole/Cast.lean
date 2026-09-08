@@ -60,9 +60,11 @@ def applyCast (need : SupportDecl) (e : BExpr) : BuildM BExpr := do
     if signed then pure (Bld.castToSInt (Bld.bvTy w) e)
     else pure (Bld.castToInt (Bld.bvTy w) e)
   | .natToInt =>
+    if Flags.natAsInt () then pure e else
     let idx ← resolveFreeVar "nat.toInt"
     pure (Bld.app (Bld.fvar idx) e)
   | .intToNat =>
+    if Flags.natAsInt () then pure e else
     let idx ← resolveFreeVar "nat.fromInt"
     pure (Bld.app (Bld.fvar idx) e)
   | .intToBv w _signed =>
@@ -78,6 +80,7 @@ def applyCast (need : SupportDecl) (e : BExpr) : BuildM BExpr := do
   | .bvToNat w signed =>
     let eInt := if signed then Bld.castToSInt (Bld.bvTy w) e
                 else Bld.castToInt (Bld.bvTy w) e
+    if Flags.natAsInt () then pure eInt else
     let idx ← resolveFreeVar "nat.fromInt"
     pure (Bld.app (Bld.fvar idx) eInt)
   | _ => genericCast need e
@@ -88,12 +91,12 @@ private def castExprToWiderBvB (fromW toW : Nat) (signed : Bool) (e : BExpr) : B
 
 /-- Extract an explicit bitvector width from a `BType` annotation. -/
 private def bvTypeWidth? : BType → Option Nat
-  | .bv1 _ => some 1
-  | .bv8 _ => some 8
-  | .bv16 _ => some 16
-  | .bv32 _ => some 32
-  | .bv64 _ => some 64
-  | .bv128 _ => some 128
+  | .bv _ (.W1 _) => some 1
+  | .bv _ (.W8 _) => some 8
+  | .bv _ (.W16 _) => some 16
+  | .bv _ (.W32 _) => some 32
+  | .bv _ (.W64 _) => some 64
+  | .bv _ (.W128 _) => some 128
   | _ => none
 
 /-- Width of a `BExpr` that carries a bv type syntactically (typed bv ops,

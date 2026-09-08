@@ -10,6 +10,7 @@
   The `BuildM`-valued cast-insertion helpers live in `Cast.lean`.
 -/
 import VerusLean.VLIR.Defs
+import VerusLean.VLIR.Boole.Flags
 
 namespace VerusLean.Boole.Coercions
 
@@ -23,7 +24,7 @@ def usizeBitWidth : Nat := 64
 def supportedBvWidths : List Nat := [1, 8, 16, 32, 64, 128]
 
 def isSupportedBvWidth (w : Nat) : Bool :=
-  supportedBvWidths.contains w
+  supportedBvWidths.contains w && !(w == 8 && Flags.u8AsInt ())
 
 def bitWidthOfTyp : Typ → Option Nat
   | .UInt w | .SInt w => if isSupportedBvWidth w then some w else none
@@ -91,7 +92,7 @@ inductive NumKind where
     faithful unbounded `int`, then casts exactly to `bv128`. -/
 def numKindOfTyp? : Typ → Option NumKind
   | .Int => some .int
-  | .Nat => some .nat
+  | .Nat => if Flags.natAsInt () then some .int else some .nat
   | .UInt w => if isSupportedBvWidth w then some (.bv w false) else some .int
   | .SInt w => if isSupportedBvWidth w then some (.bv w true) else some .int
   | .USize => some (.bv usizeBitWidth false)

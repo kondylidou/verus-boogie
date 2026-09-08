@@ -110,6 +110,38 @@ def buildGlobalContext (names : Array String) : StrataDDM.GlobalContext :=
   names.foldl (fun ctx name =>
     ctx.ensureDefined name (.type [] none)) {}
 
+/-- Cosmetic clean-up of the formatter's output: no leading blank on top-level
+    lines, one blank line between top-level declarations and none inside them
+    (axioms stay glued to the declaration they follow),
+    `requires`/`ensures`/`decreases`/`invariant` each on its own indented line. -/
+def tidy (s : String) : String := Id.run do
+  let isTop (l : String) : Bool :=
+    ["type ", "function ", "inline function ", "rec function ", "procedure ", "axiom ", "datatype ", "const "].any
+      (fun k => l.startsWith k || l.startsWith (" " ++ k))
+  -- split glued keywords: `… - 1invariant …`, `) : int requires …`
+  let s := (s.replace "invariant " "\n    invariant ").replace "\n\n    invariant" "\n    invariant"
+  let s := (s.replace " requires " "\n  requires ").replace " ensures " "\n  ensures "
+  let s := s.replace "\ndecreases " "\n  decreases "
+  let mut out : Array String := #[]
+  let mut inProc := false
+  for l in s.splitOn "\n" do
+    let l : String := if l.startsWith " " && isTop l then (l.toSubstring.drop 1).toString else l
+    if l.trimAscii.isEmpty then continue           -- blank lines are re-inserted below
+    if isTop l then
+      -- an `axiom` attaches to the declaration before it (no blank line)
+      if !out.isEmpty && !(l.startsWith "axiom ") then out := out.push ""
+      inProc := l.startsWith "procedure "
+    -- a function body's `{` sits on its own unindented line; inside procedures
+    -- the formatter's indentation is kept.  `} {` (end of spec, start of body)
+    -- becomes two lines.
+    if l.trimAscii.toString == "{" && !inProc then out := out.push "{"
+    else if l.trimAscii.toString == "} {" then
+      out := out.push "}"
+      out := out.push "{"
+    else out := out.push l
+  -- procedure/function bodies: `};` closers and `{` openers keep their own lines
+  return String.intercalate "\n" out.toList
+
 /-- Render Boole commands to text using Strata's `Boole.formatProgram` with an
     explicit `GlobalContext`. This uses the PR fix to resolve fvar indices when
     commands come from `BooleDDM.toAst` (which doesn't populate globalContext).
@@ -132,7 +164,7 @@ def renderProgram
     -- `Boole.formatProgram` emits only the program body; the dialect header
     -- is required for the output to be re-parseable (this mirrors the fix
     -- Strata PR #767 applied the same header fix to Core formatting.
-    let output := s!"program Boole;\n\n{body}"
+    let output := s!"program Boole;\n\n{tidy body}"
     let output := if output.endsWith "\n" then output else output ++ "\n"
     .ok output
 

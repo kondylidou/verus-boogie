@@ -65,6 +65,14 @@ def prefixRangeRequires (seqE idxE : BExpr) : BooleDDM.SpecElt SourceRange :=
 def lowerBoundInvExp (startExp : Exp) (loopVarName : String) : Exp :=
   .Binary (.Inequality .Le) startExp (.Var loopVarName)
 
+/-- The source-level comparison `loopVar <= endExp`: a for-range loop's upper
+    bound.  Verus's `for i in lo..hi` iterator guarantees `i <= hi` at every
+    loop head including exit (`i == hi` there); Strata's `for … to hi-1` gives
+    the body `i <= hi-1` through the guard but states nothing after the loop,
+    so a postcondition that needs `i == len` at exit is otherwise unprovable. -/
+def upperBoundInvExp (endExp : Exp) (loopVarName : String) : Exp :=
+  .Binary (.Inequality .Le) (.Var loopVarName) endExp
+
 /-- `0 <= e` — the non-negativity a `usize` carries in its type.  `IntPromotion`
     retypes index-only `usize` locals as `Int` to keep them out of bv↔int
     round-trips, which drops that guarantee.  It survives straight-line code

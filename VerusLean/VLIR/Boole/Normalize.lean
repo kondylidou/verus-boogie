@@ -884,6 +884,10 @@ private def stripVacuousImpliesInAssume : Stm → Stm
   | .Assume e => .Assume (peelVacuousAssumeWrappers e)
   | s => s
 
+/-- Verus names call-result temporaries `tmp%7` / `tmp%%3` (the `%` is dropped
+    only at emission). -/
+def isCallTempName (s : String) : Bool :=
+  s.startsWith "tmp" && (let d := ((s.drop 3).replace "%" ""); !d.isEmpty && d.all Char.isDigit)
 mutual
   /-- Recursive helper: applies `normalizeStms` to nested statement lists
       (Block contents, Loop bodies, If branches), and at each `.Loop` site
@@ -937,7 +941,26 @@ mutual
     let cleaned := normalized.filterMap (fun s =>
       let s' := stripVacuousImpliesInAssume s
       if isAssumeTrue s' then none else some s')
-    cleaned.map (normalizeStm isPureCallName)
+    (foldCallTemps cleaned).map (normalizeStm isPureCallName)
+
+  /-- `e` is the temp `t`, possibly under box/unbox coercions (which the
+      lowering erases); returns `e` with the temp replaced by `by`. -/
+  partial def replaceTempUse (t : String) (by_ : Exp) : Exp → Option Exp
+    | .Var v => if v == t then some by_ else none
+    | .Unary op@(.Box _) e => (replaceTempUse t by_ e).map (.Unary op)
+    | .Unary op@(.Unbox _) e => (replaceTempUse t by_ e).map (.Unary op)
+    | _ => none
+
+  /-- `tmpN := f(..); x := tmpN;` → `x := f(..);` for a Verus call temporary
+      that nothing later reads (the SST names every call result before moving
+      it into the program variable). -/
+  partial def foldCallTemps : List Stm → List Stm
+    | (.Assign (.Var t) tty rhs@(.Call ..) true) :: (.Assign lhs lty use init) :: rest =>
+      match (if isCallTempName t && !(rest.any (stmMentionsVar t)) then replaceTempUse t rhs use else none) with
+      | some use' => foldCallTemps ((.Assign lhs lty use' init) :: rest)
+      | none => (.Assign (.Var t) tty rhs true) :: foldCallTemps ((.Assign lhs lty use init) :: rest)
+    | s :: rest => s :: foldCallTemps rest
+    | [] => []
 end
 
 /-- Single VLIR-level normalization pre-pass run once per body before

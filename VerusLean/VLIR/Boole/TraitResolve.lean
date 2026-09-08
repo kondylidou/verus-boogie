@@ -60,82 +60,83 @@ def buildTraitImplMap (decls : List Decl) : Std.HashMap String Ident :=
       | some none => m
   Std.HashMap.ofList (tallied.toList.filterMap fun (k, v?) => v?.map (k, ·))
 
-/-- Redirect every trait-method `Exp.Call` the map `m` resolves onto its
-    impl, recursing into all subexpressions. -/
-partial def rewriteExp (m : Std.HashMap String Ident) : Exp → Exp
-  | .Const c ty => .Const c ty
-  | .Var v => .Var v
-  | .Call fn typs exps =>
-    let exps := exps.map (rewriteExp m)
-    let fn := match fn with
-      | .Fun name =>
-        match m.get? (identToBoole name) with
-        | some impl => if typs.all typIsConcrete then .Fun impl else .Fun name
-        | none => .Fun name
-      | other => other
-    .Call fn typs exps
-  | .CallLambda body args => .CallLambda (rewriteExp m body) (args.map (rewriteExp m))
-  | .StructCtor n fields => .StructCtor n (fields.map fun (f, e) => (f, rewriteExp m e))
-  | .EnumCtor n v fields => .EnumCtor n v (fields.map fun (f, e) => (f, rewriteExp m e))
-  | .TupleCtor n data => .TupleCtor n (data.map (rewriteExp m))
-  | .Unary op e => .Unary op (rewriteExp m e)
-  | .Binary op a b => .Binary op (rewriteExp m a) (rewriteExp m b)
-  | .If c t f => .If (rewriteExp m c) (rewriteExp m t) (rewriteExp m f)
+/-- Bottom-up rewrite of every subexpression by `post`. -/
+partial def mapExp (post : Exp → Exp) : Exp → Exp
+  | .Const c ty => post (.Const c ty)
+  | .Var v => post (.Var v)
+  | .Call fn typs exps => post (.Call fn typs (exps.map (mapExp post)))
+  | .CallLambda body args => post (.CallLambda (mapExp post body) (args.map (mapExp post)))
+  | .StructCtor n fields => post (.StructCtor n (fields.map fun (f, e) => (f, mapExp post e)))
+  | .EnumCtor n v fields => post (.EnumCtor n v (fields.map fun (f, e) => (f, mapExp post e)))
+  | .TupleCtor n data => post (.TupleCtor n (data.map (mapExp post)))
+  | .Unary op e => post (.Unary op (mapExp post e))
+  | .Binary op a b => post (.Binary op (mapExp post a) (mapExp post b))
+  | .If c t f => post (.If (mapExp post c) (mapExp post t) (mapExp post f))
   | .Bind bind body =>
     let bind := match bind with
-      | .Let v ty rhs => .Let v ty (rewriteExp m rhs)
-      | .Quant q vars trigs => .Quant q vars (trigs.map (·.map (rewriteExp m)))
+      | .Let v ty rhs => .Let v ty (mapExp post rhs)
+      | .Quant q vars trigs => .Quant q vars (trigs.map (·.map (mapExp post)))
       | .Lambda vars => .Lambda vars
-      | .Choose vars pred => .Choose vars (rewriteExp m pred)
-    .Bind bind (rewriteExp m body)
-  | .ArrayLiteral elems => .ArrayLiteral (elems.map (rewriteExp m))
-  | .MatchBlock (scrut, pat) body => .MatchBlock (rewriteExp m scrut, pat) (rewriteExp m body)
+      | .Choose vars pred => .Choose vars (mapExp post pred)
+    post (.Bind bind (mapExp post body))
+  | .ArrayLiteral elems => post (.ArrayLiteral (elems.map (mapExp post)))
+  | .MatchBlock (scrut, pat) body => post (.MatchBlock (mapExp post scrut, pat) (mapExp post body))
 
-/-- `rewriteExp` lifted over the expressions inside a statement. -/
-partial def rewriteStm (m : Std.HashMap String Ident) : Stm → Stm
-  | .Call fn typArgs args => .Call fn typArgs (args.map (rewriteExp m))
-  | .Assert e => .Assert (rewriteExp m e)
+/-- The trait-call redirection, as a `mapExp` post-function. -/
+private def resolveCall (m : Std.HashMap String Ident) : Exp → Exp
+  | .Call (.Fun name) typs exps =>
+    match m.get? (identToBoole name) with
+    | some impl => if typs.all typIsConcrete then .Call (.Fun impl) typs exps else .Call (.Fun name) typs exps
+    | none => .Call (.Fun name) typs exps
+  | e => e
+
+partial def rewriteExp (m : Std.HashMap String Ident) : Exp → Exp := mapExp (resolveCall m)
+
+/-- `rewriteStm`/`mapStm`: an expression rewrite lifted over the expressions inside a statement. -/
+partial def mapStm (rewriteExp : Exp → Exp) : Stm → Stm
+  | .Call fn typArgs args => .Call fn typArgs (args.map rewriteExp)
+  | .Assert e => .Assert (rewriteExp e)
   | .AssertBitVector reqs enss =>
-    .AssertBitVector (reqs.map (rewriteExp m)) (enss.map (rewriteExp m))
-  | .AssertQuery mode body => .AssertQuery mode (rewriteStm m body)
-  | .AssertCompute e => .AssertCompute (rewriteExp m e)
-  | .AssertLean e => .AssertLean (rewriteExp m e)
-  | .Assume e => .Assume (rewriteExp m e)
-  | .Assign lhs lhsTy rhs lhsIsInit => .Assign lhs lhsTy (rewriteExp m rhs) lhsIsInit
-  | .DeadEnd s => .DeadEnd (rewriteStm m s)
-  | .Return e? => .Return (e?.map (rewriteExp m))
+    .AssertBitVector (reqs.map rewriteExp) (enss.map rewriteExp)
+  | .AssertQuery mode body => .AssertQuery mode (mapStm rewriteExp body)
+  | .AssertCompute e => .AssertCompute (rewriteExp e)
+  | .AssertLean e => .AssertLean (rewriteExp e)
+  | .Assume e => .Assume (rewriteExp e)
+  | .Assign lhs lhsTy rhs lhsIsInit => .Assign lhs lhsTy (rewriteExp rhs) lhsIsInit
+  | .DeadEnd s => .DeadEnd (mapStm rewriteExp s)
+  | .Return e? => .Return (e?.map rewriteExp)
   | .BreakOrContinue label isBreak => .BreakOrContinue label isBreak
-  | .If cond b1 b2 => .If (rewriteExp m cond) (rewriteStm m b1) (b2.map (rewriteStm m))
+  | .If cond b1 b2 => .If (rewriteExp cond) (mapStm rewriteExp b1) (b2.map (mapStm rewriteExp))
   | .Loop isFor label cond body invs decrease =>
-    let cond := cond.map fun (s, e) => (rewriteStm m s, rewriteExp m e)
-    let invs := invs.map fun inv => { inv with body := rewriteExp m inv.body }
-    .Loop isFor label cond (rewriteStm m body) invs (decrease.map (rewriteExp m))
-  | .OpenInvariant s => .OpenInvariant (rewriteStm m s)
-  | .ClosureInner s => .ClosureInner (rewriteStm m s)
-  | .Block stms => .Block (stms.map (rewriteStm m))
+    let cond := cond.map fun (s, e) => (mapStm rewriteExp s, rewriteExp e)
+    let invs := invs.map fun inv => { inv with body := rewriteExp inv.body }
+    .Loop isFor label cond (mapStm rewriteExp body) invs (decrease.map rewriteExp)
+  | .OpenInvariant s => .OpenInvariant (mapStm rewriteExp s)
+  | .ClosureInner s => .ClosureInner (mapStm rewriteExp s)
+  | .Block stms => .Block (stms.map (mapStm rewriteExp))
   | .Reveal fn fuel => .Reveal fn fuel
 
-/-- `rewriteExp` / `rewriteStm` lifted over every expression a decl holds
+/-- An expression rewrite lifted over every expression a decl holds
     (body, spec clauses, recommends, decreases). -/
-partial def rewriteDecl (m : Std.HashMap String Ident) : Decl → Decl
+partial def mapDecl (rewriteExp : Exp → Exp) : Decl → Decl
   | .specFn f => .specFn { f with
-      body := f.body.map (rewriteExp m)
-      decreases := f.decreases.map (rewriteStm m)
-      recommends := f.recommends.map (rewriteExp m) }
+      body := f.body.map rewriteExp
+      decreases := f.decreases.map (mapStm rewriteExp)
+      recommends := f.recommends.map rewriteExp }
   | .proofFn f => .proofFn { f with
-      requires := f.requires.map (rewriteExp m)
-      ensures := f.ensures.map (rewriteExp m)
-      body := f.body.map (rewriteStm m)
-      decreases := f.decreases.map (rewriteStm m) }
+      requires := f.requires.map rewriteExp
+      ensures := f.ensures.map rewriteExp
+      body := f.body.map (mapStm rewriteExp)
+      decreases := f.decreases.map (mapStm rewriteExp) }
   | .execFn f => .execFn { f with
-      requires := f.requires.map (rewriteExp m)
-      ensures := f.ensures.map (rewriteExp m)
-      body := rewriteStm m f.body
-      decreases := f.decreases.map (rewriteStm m) }
+      requires := f.requires.map rewriteExp
+      ensures := f.ensures.map rewriteExp
+      body := mapStm rewriteExp f.body
+      decreases := f.decreases.map (mapStm rewriteExp) }
   | .func f => .func { f with
-      reqs := f.reqs.map (rewriteExp m)
-      postCondition := f.postCondition.map (rewriteExp m) }
-  | .mutualBlock ds => .mutualBlock (ds.map (rewriteDecl m))
+      reqs := f.reqs.map rewriteExp
+      postCondition := f.postCondition.map rewriteExp }
+  | .mutualBlock ds => .mutualBlock (ds.map (mapDecl rewriteExp))
   | d => d
 
 /-- Point every spec-level call to an abstract trait method — where the
@@ -143,6 +144,6 @@ partial def rewriteDecl (m : Std.HashMap String Ident) : Decl → Decl
     program declares no unambiguous trait-method impls. -/
 def resolveTraitSpecCalls (decls : List Decl) : List Decl :=
   let m := buildTraitImplMap decls
-  if m.isEmpty then decls else decls.map (rewriteDecl m)
+  if m.isEmpty then decls else decls.map (mapDecl (rewriteExp m))
 
 end VerusLean.Boole.TraitResolve

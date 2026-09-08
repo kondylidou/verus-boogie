@@ -6,6 +6,7 @@
   module centralizes the syntactic name policy used before BooleDDM lowering.
 -/
 import VerusLean.VLIR.Defs
+import VerusLean.VLIR.Boole.Flags
 
 namespace VerusLean.Boole.Names
 
@@ -68,8 +69,35 @@ private def stripImplSegment (name : String) : String :=
     | _ => none
   (tryStrip "_Impl__" <|> tryStrip "_impl__").getD name
 
-def identToBoole (i : Ident) : String :=
+/-- The long (module-qualified) Boole name of an identifier. -/
+def identToBooleLong (i : Ident) : String :=
   stripImplSegment (sanitizeIdent (stripLeadingNamespace i.toString))
+
+/-- Last path segment, sanitized: the `--short-names` form. -/
+def lastSegmentName (i : Ident) : String :=
+  sanitizeIdent ((i.toString.splitOn ".").getLast!)
+
+/-- An impl-block method (`scalar.impl&%19.add`): under `--short-names` these
+    keep the module prefix (`Scalar_add`) — the bare method name says nothing. -/
+def isImplSegment (seg : String) : Bool :=
+  let s := seg.toLower
+  s.startsWith "impl&%" || s.startsWith "impl__"
+
+def isImplMethodIdent (i : Ident) : Bool :=
+  (i.toString.splitOn ".").any isImplSegment
+
+/-- For `Crate.Scalar.Impl&%18.add`, the segment before the impl segment: the
+    type the method belongs to (`Scalar`). -/
+def implOwnerSegment? (i : Ident) : Option String :=
+  let segs := i.toString.splitOn "."
+  match segs.findIdx? isImplSegment with
+  | some k => if k > 0 then segs[k-1]? else none
+  | none => none
+
+/-- The Boole name used throughout translation.  `--short-names` does NOT change
+    it: library-shape recognition (`Seq::subrange`, `pow2`, …) keys on these names;
+    short names are applied to the rendered program text in `Main` instead. -/
+def identToBoole (i : Ident) : String := identToBooleLong i
 
 def sanitizeVarName (s : String) : String :=
   sanitizeIdent (s.replace "%" "_pct_")
@@ -149,7 +177,12 @@ def projFieldNameOf (dt : Ident) (variant field : String) : String :=
   -- variants need the `<dt>_<variant>_` disambiguation prefix; enum
   -- declarations bind their fields through this same function, so both sides
   -- agree either way.
+  -- A struct's single variant is named after the type's last path segment
+  -- (`scalar::Scalar` has variant `Scalar`), while the datatype name keeps the
+  -- module prefix (`Scalar_scalar`); compare against both.
+  let lastSeg := sanitizeIdent (dt.toString.splitOn ".").getLast!
   let isStructVariant := variantName.toLower == dtName.toLower
+    || variantName.toLower == lastSeg.toLower
   if field == "_" then
     s!"{dtName}_{variantName}_0"
   else
