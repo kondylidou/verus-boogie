@@ -1,12 +1,25 @@
 #!/bin/sh
 # Rust (a Verus-annotated dalek-lite module) -> Boole -> a Strata-Boole benchmark file.
 #
-#   dalek/rust_to_boole.sh <module.rs> --only <fn> [--lean-out <file.lean>] [--no-lean]
+#   dalek/rust_to_boole.sh <module.rs> --only <fn> --dalek-lite <dir> --strata-boole <dir> \
+#                          --verus-bin <dir> [--lean-out <file.lean>] [--no-lean]
 #
-#   dalek/rust_to_boole.sh dalek/input/scalar_helpers.rs --only sum_of_slice
+#   dalek/rust_to_boole.sh dalek/input/scalar_helpers.rs --only sum_of_slice \
+#       --dalek-lite <path/to/dalek-lite> --strata-boole <path/to/Strata-Boole> \
+#       --verus-bin <path/to/verus>/source/target-verus/release
 #     -> dalek/out/sum_of_slice.boole.st                       (the Boole program)
-#     -> ../Strata-Boole/StrataBooleTest/dalek_sum_of_slice_translated.lean
+#     -> <strata-boole>/StrataBooleTest/dalek_sum_of_slice_translated.lean
 #        (three levels: Verus source, Boole + cvc5 #guard_msgs, Lean theorem), built.
+#
+#   --dalek-lite <dir>     the dalek-lite crate the Rust module is verified in (its
+#                          Cargo.toml must point vstd/verus_builtin at the Verus fork —
+#                          see README.md for the expected sibling layout)
+#   --strata-boole <dir>   the Strata-Boole checkout the Lean file is written into and
+#                          built in (its lakefile resolves Strata itself, from git)
+#   --verus-bin <dir>      the Verus fork's built release dir (`cargo build --release`
+#                          under <verus>/source, toolchain 1.93.1), providing `cargo-verus`
+#
+# See README.md for the full one-time setup (four repos, toolchain, first build).
 #
 # Steps
 #   1. the module file replaces `curve25519-dalek/src/<module>.rs` in the dalek-lite crate
@@ -35,23 +48,29 @@
 #      the Lean theorem.
 set -eu
 
-RUST=""; FN=""; LEAN_OUT=""; DO_LEAN=1
+RUST=""; FN=""; DALEK_LITE=""; STRATA_BOOLE=""; VERUS_BIN=""; LEAN_OUT=""; DO_LEAN=1
 while [ $# -gt 0 ]; do
   case "$1" in
     --only) FN=$2; shift 2 ;;
+    --dalek-lite) DALEK_LITE=$2; shift 2 ;;
+    --strata-boole) STRATA_BOOLE=$2; shift 2 ;;
+    --verus-bin) VERUS_BIN=$2; shift 2 ;;
     --lean-out) LEAN_OUT=$2; shift 2 ;;
     --no-lean) DO_LEAN=0; shift ;;
     -*) echo "unknown option $1" >&2; exit 2 ;;
     *) RUST=$1; shift ;;
   esac
 done
-[ -n "$RUST" ] && [ -n "$FN" ] || { echo "usage: $0 <module.rs> --only <fn> [--lean-out <file.lean>] [--no-lean]" >&2; exit 2; }
+[ -n "$RUST" ] && [ -n "$FN" ] && [ -n "$DALEK_LITE" ] && [ -n "$STRATA_BOOLE" ] && [ -n "$VERUS_BIN" ] || {
+  echo "usage: $0 <module.rs> --only <fn> --dalek-lite <dir> --strata-boole <dir> --verus-bin <dir> [--lean-out <file.lean>] [--no-lean]" >&2
+  exit 2
+}
 case "$RUST" in /*) ;; *) RUST="$PWD/$RUST" ;; esac
+DALEK_LITE=$(cd "$DALEK_LITE" && pwd)
+STRATA_BOOLE=$(cd "$STRATA_BOOLE" && pwd)
+VERUS_BIN=$(cd "$VERUS_BIN" && pwd)
 
 HERE=$(cd "$(dirname "$0")" && pwd)                          # <verus-boogie>/dalek
-DALEK_LITE=${DALEK_LITE:-$HOME/Desktop/projects/dalek-lite}   # external tool: the crate
-VERUS_BIN=${VERUS_BIN:-$HOME/Desktop/projects/verus/source/target-verus/release}
-STRATA_BOOLE=${STRATA_BOOLE:-$(cd "$HERE/../../Strata-Boole" && pwd)}
 VERUS_LEAN=$HERE/../.lake/build/bin/verus-lean
 JSON_DIR=$HERE/export_json
 OUT=$HERE/out/$FN.boole.st
