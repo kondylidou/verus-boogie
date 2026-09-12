@@ -94,9 +94,18 @@ cp "$RUST" "$DALEK_LITE/curve25519-dalek/src/$MODULE.rs"
 mkdir -p "$JSON_DIR" "$HERE/out"; rm -f "$JSON_DIR"/*.json
 args="--verify-module $MODULE"
 for m in $EXTRA_MODULES; do args="$args --verify-module $m"; done
+# `cargo verus` passes everything after `--` to EVERY verus-checked crate it compiles,
+# not just `-p`'s.  On a cold target dir that includes vstd, which has no module by these
+# names and fails with "could not find module ... specified by --verify-module".  So build
+# the graph once with `--no-verify` (valid for any crate, no module names): vstd lands in
+# the cache and the real, scoped run below reuses it instead of re-checking it.  A no-op
+# once warm.
+( cd "$DALEK_LITE" && PATH="$VERUS_BIN:$PATH" RUSTUP_TOOLCHAIN=1.93.1 \
+    cargo verus verify -p curve25519-dalek -- --no-verify > "$JSON_DIR/prime.log" 2>&1 || true )
 ( cd "$DALEK_LITE" && PATH="$VERUS_BIN:$PATH" RUSTUP_TOOLCHAIN=1.93.1 \
     cargo verus verify -p curve25519-dalek -- $args --export-lean-all > "$JSON_DIR/export.log" 2>&1 || true
-  mv "$DALEK_LITE"/*.json "$JSON_DIR"/ )
+  mv "$DALEK_LITE"/*.json "$JSON_DIR"/ 2>/dev/null || {
+    echo "ERROR: the Verus export produced no JSON; see $JSON_DIR/export.log" >&2; exit 1; } )
 echo "exported: $(ls "$JSON_DIR"/*.json | xargs -n1 basename | tr '\n' ' ')"
 
 # 3. translate
