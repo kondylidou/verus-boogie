@@ -46,10 +46,13 @@
 #      With --drop-proof-hints a lemma call with no arguments keeps its ensures as axioms.
 #   4. gen_lean.py wraps it and Strata-Boole builds the result.  By default this is two
 #      builds: a throwaway one to capture cvc5's per-obligation result as a `#guard_msgs`
-#      pin on Level 2, then the real file.  `--lean-only` skips the throwaway build and the
-#      Level 2 `#eval Strata.Boole.verify` check entirely — Level 3 already re-proves every
-#      obligation, so that check is a second, redundant cvc5 pass over the same obligations,
-#      useful only as a CI regression pin, not for "does this verify".
+#      pin on Level 2 (the Boole program plus `#eval Strata.Boole.verify "cvc5"` — cvc5
+#      trusted directly, fast), then the real file with Level 3 on top (`gen_smt_vcs_boole;
+#      smt` — cvc5's proof reconstructed and checked by the Lean kernel, slow, nothing taken
+#      on cvc5's word).  `--lean-only` skips the throwaway build and Level 2's `#eval` check
+#      entirely, going straight to Level 3.  Faster, but if Level 3 then fails you can no
+#      longer tell whether cvc5 couldn't prove the obligation or proved it and Lean's replay
+#      choked — Level 2 is what makes that distinction, not a duplicate of Level 3's work.
 set -eu
 
 RUST=""; FN=""; DALEK_LITE=""; STRATA_BOOLE=""; VERUS_BIN=""; LEAN_OUT=""; DO_LEAN=1; LEAN_ONLY=0
