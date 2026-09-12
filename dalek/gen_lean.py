@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """Wrap a translated Boole program into a Strata-Boole three-level benchmark file.
 
-    gen_lean.py <fn> <input.rs> <program.boole.st> <out.lean> [--level2-only] [--guard <obligations.txt>]
+    gen_lean.py <fn> <input.rs> <program.boole.st> <out.lean>
+                [--level2-only] [--guard <obligations.txt>] [--no-eval]
 
 Level 1: the Verus function, verbatim from the input Rust module.
 Level 2: the Boole program exactly as `verus-lean boole` produced it, under
          `#eval Strata.Boole.verify "cvc5"` (add the `#guard_msgs` block by building once).
+         `--no-eval` drops this check entirely (Level 2 is just the program) — use when
+         Level 3 is the only result you want; it re-proves every obligation anyway, so the
+         `#eval` line is a second, redundant cvc5 pass over the same obligations.
 Level 3: the Lean theorem, every obligation closed by lean-smt.
 """
 import re, sys
@@ -13,7 +17,9 @@ import re, sys
 fn, rs_path, st_path, out_path = sys.argv[1:5]
 opts = sys.argv[5:]
 level2_only = "--level2-only" in opts
+no_eval = "--no-eval" in opts
 guard = open(opts[opts.index("--guard") + 1]).read().rstrip("\n") if "--guard" in opts else None
+assert not (no_eval and guard), "--no-eval and --guard are mutually exclusive"
 rs = open(rs_path).read().split("\n")
 st = open(st_path).read().rstrip("\n")
 
@@ -31,6 +37,7 @@ assert "-/" not in src and "/-" not in src
 # same name in the guard-only build and the final file: obligation ids carry byte offsets
 seed = re.sub(r"[^A-Za-z0-9]", "", fn) + "TranslatedSeed"
 guard_block = f"/-- info:\n{guard}\n-/\n#guard_msgs in\n" if guard else ""
+eval_block = "" if no_eval else f'{guard_block}#eval Strata.Boole.verify "cvc5" {seed} (options := .quiet)\n'
 level3 = "" if level2_only else f"""
 -- Lean backend: every obligation is proved by cvc5 and the proof is replayed in the Lean
 -- kernel (lean-smt).  Spec functions are opaque atoms to the solver here; the goals that
@@ -78,7 +85,6 @@ private def {seed} : StrataDDM.Program :=
 {st}
 #end
 
-{guard_block}#eval Strata.Boole.verify "cvc5" {seed} (options := .quiet)
-{level3}"""
+{eval_block}{level3}"""
 open(out_path, "w").write(lean)
 print(f"wrote {out_path}")

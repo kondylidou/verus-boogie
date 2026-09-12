@@ -2,7 +2,7 @@
 # Rust (a Verus-annotated dalek-lite module) -> Boole -> a Strata-Boole benchmark file.
 #
 #   dalek/rust_to_boole.sh <module.rs> --only <fn> --dalek-lite <dir> --strata-boole <dir> \
-#                          --verus-bin <dir> [--lean-out <file.lean>] [--no-lean]
+#                          --verus-bin <dir> [--lean-out <file.lean>] [--no-lean] [--lean-only]
 #
 #   dalek/rust_to_boole.sh dalek/input/scalar_helpers.rs --only sum_of_slice \
 #       --dalek-lite <path/to/dalek-lite> --strata-boole <path/to/Strata-Boole> \
@@ -44,11 +44,15 @@
 #                       synthesized length requires, so their calls create no obligations
 #        --short-names  last path segment as the name (Scalar, group_canonical, sum_of_slice)
 #      With --drop-proof-hints a lemma call with no arguments keeps its ensures as axioms.
-#   4. gen_lean.py wraps it; Strata-Boole is built once for the cvc5 guard and once more for
-#      the Lean theorem.
+#   4. gen_lean.py wraps it and Strata-Boole builds the result.  By default this is two
+#      builds: a throwaway one to capture cvc5's per-obligation result as a `#guard_msgs`
+#      pin on Level 2, then the real file.  `--lean-only` skips the throwaway build and the
+#      Level 2 `#eval Strata.Boole.verify` check entirely — Level 3 already re-proves every
+#      obligation, so that check is a second, redundant cvc5 pass over the same obligations,
+#      useful only as a CI regression pin, not for "does this verify".
 set -eu
 
-RUST=""; FN=""; DALEK_LITE=""; STRATA_BOOLE=""; VERUS_BIN=""; LEAN_OUT=""; DO_LEAN=1
+RUST=""; FN=""; DALEK_LITE=""; STRATA_BOOLE=""; VERUS_BIN=""; LEAN_OUT=""; DO_LEAN=1; LEAN_ONLY=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --only) FN=$2; shift 2 ;;
@@ -57,12 +61,13 @@ while [ $# -gt 0 ]; do
     --verus-bin) VERUS_BIN=$2; shift 2 ;;
     --lean-out) LEAN_OUT=$2; shift 2 ;;
     --no-lean) DO_LEAN=0; shift ;;
+    --lean-only) LEAN_ONLY=1; shift ;;
     -*) echo "unknown option $1" >&2; exit 2 ;;
     *) RUST=$1; shift ;;
   esac
 done
 [ -n "$RUST" ] && [ -n "$FN" ] && [ -n "$DALEK_LITE" ] && [ -n "$STRATA_BOOLE" ] && [ -n "$VERUS_BIN" ] || {
-  echo "usage: $0 <module.rs> --only <fn> --dalek-lite <dir> --strata-boole <dir> --verus-bin <dir> [--lean-out <file.lean>] [--no-lean]" >&2
+  echo "usage: $0 <module.rs> --only <fn> --dalek-lite <dir> --strata-boole <dir> --verus-bin <dir> [--lean-out <file.lean>] [--no-lean] [--lean-only]" >&2
   exit 2
 }
 case "$RUST" in /*) ;; *) RUST="$PWD/$RUST" ;; esac
@@ -97,14 +102,18 @@ echo "wrote $OUT ($(wc -l < "$OUT" | tr -d ' ') lines)"
 grep -q "assume false" "$OUT" && grep -A3 "procedure [A-Za-z_]*_$FN " "$OUT" | grep -q "assume false" && { echo "ERROR: the entry procedure has no body" >&2; exit 1; }
 
 [ "$DO_LEAN" = 1 ] || exit 0
-
-# 4a. cvc5 guard: build a Level-2-only copy once (seconds), capture the obligations
 cd "$STRATA_BOOLE"
-TMP=StrataBooleTest/zz_guard_$FN.lean
-python3 "$HERE/gen_lean.py" "$FN" "$RUST" "$OUT" "$TMP" --level2-only > /dev/null
-lake build "StrataBooleTest.zz_guard_$FN" > "$HERE/out/$FN.cvc5.log" 2>&1 || true
-rm -f "$TMP"
-python3 - "$HERE/out/$FN.cvc5.log" "$HERE/out/$FN.guard.txt" <<'EOF'
+
+if [ "$LEAN_ONLY" = 1 ]; then
+  # skip the cvc5 guard entirely; Level 2 has no #eval check, Level 3 is the only result
+  python3 "$HERE/gen_lean.py" "$FN" "$RUST" "$OUT" "$LEAN_OUT" --no-eval
+else
+  # 4a. cvc5 guard: build a Level-2-only copy once (seconds), capture the obligations
+  TMP=StrataBooleTest/zz_guard_$FN.lean
+  python3 "$HERE/gen_lean.py" "$FN" "$RUST" "$OUT" "$TMP" --level2-only > /dev/null
+  lake build "StrataBooleTest.zz_guard_$FN" > "$HERE/out/$FN.cvc5.log" 2>&1 || true
+  rm -f "$TMP"
+  python3 - "$HERE/out/$FN.cvc5.log" "$HERE/out/$FN.guard.txt" <<'EOF'
 import sys
 log=open(sys.argv[1]).read()
 if "Obligation:" not in log:
@@ -116,9 +125,10 @@ n=msg.count("Obligation:"); ok=msg.count("✅ pass")
 open(sys.argv[2],"w").write(msg)
 print(f"cvc5: {ok}/{n} obligations pass" + ("" if ok==n else "  <-- NOT ALL PASS"))
 EOF
+  # 4b. the real file, with the guard, then build it (this runs the Lean theorem)
+  python3 "$HERE/gen_lean.py" "$FN" "$RUST" "$OUT" "$LEAN_OUT" --guard "$HERE/out/$FN.guard.txt"
+fi
 
-# 4b. the real file, with the guard, then build it (this runs the Lean theorem)
-python3 "$HERE/gen_lean.py" "$FN" "$RUST" "$OUT" "$LEAN_OUT" --guard "$HERE/out/$FN.guard.txt"
 MOD=StrataBooleTest.$(basename "$LEAN_OUT" .lean)
 if lake build "$MOD" > "$HERE/out/$FN.lean.log" 2>&1; then
   echo "Lean: $MOD builds — every obligation certified by lean-smt"
