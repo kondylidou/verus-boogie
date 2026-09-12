@@ -7,11 +7,10 @@
 Level 1: the Verus function, verbatim from the input Rust module.
 Level 2: the Boole program exactly as `verus-lean boole` produced it, under
          `#eval Strata.Boole.verify "cvc5"` (add the `#guard_msgs` block by building once).
-         `--no-eval` drops this check entirely (Level 2 is just the program).  Trades away
-         something real for speed: Level 2 trusts cvc5 directly (fast, no proof
-         reconstruction); Level 3 has the Lean kernel check a reconstructed proof (slow,
-         nothing taken on cvc5's word).  Without Level 2, a Level 3 failure can't tell you
-         whether cvc5 couldn't prove the obligation or proved it but Lean couldn't replay it.
+         `--no-eval` drops this check entirely (Level 2 is just the program).  Level 2
+         trusts cvc5 directly; Level 3 has the Lean kernel check a reconstructed proof.
+         Without Level 2, a Level 3 failure can't tell you whether cvc5 couldn't prove the
+         obligation or proved it but Lean couldn't replay it.
 Level 3: the Lean theorem, every obligation closed by lean-smt.
 """
 import re, sys
