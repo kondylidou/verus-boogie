@@ -64,18 +64,30 @@ private def readSeqPreludeBody? : IO (Option String) :=
 private def readVecPreludeBody? : IO (Option String) :=
   readPreludeBody? "Vec.boole.st"
 
-/-- True iff `nat` appears as a whole identifier token in `s` — the Boole `nat`
-    type, or the `nat` head of a `nat.toInt` / `nat.add` / … call (`.` is a token
-    separator).  Tokenizes on identifier boundaries so substrings like `nation`
-    do not match.  Used to decide, from the actually-rendered program text,
-    whether the `nat` prelude is referenced. -/
-private def referencesNatToken (s : String) : Bool :=
-  let isIdent := fun (c : Char) => c.isAlphanum || c == '_'
-  let (found, lastTok) := s.foldl (init := ((false, "") : Bool × String))
-    (fun (found, cur) c =>
-      if isIdent c then (found, cur.push c)
-      else (found || cur == "nat", ""))
-  found || lastTok == "nat"
+/-- Render the translator's internal nat names (`nat.toInt`, `nat.add`, …, the
+    declarations of `prelude/Nat.boole.st`) as Boole's native operator surface
+    (`nat_toInt`, `nat_add`, …).  Token-exact: `nat.` is replaced only where it
+    starts an identifier, so `xnat.add` or `Scalar_nat.x` are left alone. -/
+private def nativeNatNames (text : String) : String := Id.run do
+  let ops := ["toInt", "fromInt", "add", "sub", "mul", "div", "mod", "lt", "le", "gt", "ge"]
+  let isIdChar := fun (c : Char) => c.isAlphanum || c == '_'
+  let mut out := ""
+  let mut i := 0
+  let cs := text.toList.toArray
+  while i < cs.size do
+    let atIdentStart := i == 0 || !isIdChar cs[i-1]!
+    let rest := String.mk (cs.extract i (min cs.size (i + 12))).toList
+    match (if atIdentStart && rest.startsWith "nat." then
+             ops.find? fun op => rest.startsWith s!"nat.{op}"
+               && (i + 4 + op.length ≥ cs.size || !isIdChar cs[i + 4 + op.length]!)
+           else none) with
+    | some op =>
+      out := out ++ s!"nat_{op}"
+      i := i + 4 + op.length
+    | none =>
+      out := out.push cs[i]!
+      i := i + 1
+  return out
 
 private def failWith (msg : String) : IO α :=
   throw <| IO.userError s!"Error: {msg}"
@@ -312,8 +324,6 @@ structure CliOptions where
   only : List String := []
   /-- `--u8-as-int`: model `u8` as `int` with explicit range facts. -/
   u8AsInt : Bool := false
-  /-- `--nat-as-int`: model `nat` as `int` with explicit `>= 0` facts. -/
-  natAsInt : Bool := false
   /-- `--drop-proof-hints`: remove Verus proof scaffolding (lemma calls, ghost
       bookkeeping) from exec bodies; `assert`/`assume` are kept. -/
   dropProofHints : Bool := false
@@ -339,8 +349,6 @@ private def parseCli : List String → Except String (CliOptions × List String)
     pure ({ o with only := o.only ++ (names.splitOn ",").filter (· != "") }, pos)
   | "--u8-as-int" :: rest => do
     let (o, pos) ← parseCli rest; pure ({ o with u8AsInt := true }, pos)
-  | "--nat-as-int" :: rest => do
-    let (o, pos) ← parseCli rest; pure ({ o with natAsInt := true }, pos)
   | "--drop-proof-hints" :: rest => do
     let (o, pos) ← parseCli rest; pure ({ o with dropProofHints := true }, pos)
   | "--short-names" :: rest => do
@@ -468,20 +476,17 @@ unsafe def genBooleFromFile
       | none => true
     let cmds := dedupeNamedCommands cmds
     let bodyOps := Boole.Emit.commandsToOps cmds
-    -- Emit the `nat` prelude only when the rest of the program — the body plus
-    -- the Seq/Vec prelude pieces, whose bodies reference `nat` — actually names a
-    -- `nat` token.  Decided from the rendered text, so an over-approximating
-    -- trigger (e.g. a native `Sequence` ref tripping `needsSeq`) never forces a
-    -- dead prelude.  On a render error, keep `nat` (matches always-emit behavior).
-    let natNeeded :=
-      match Boole.Emit.renderProgram (seqOps ++ vecOps) bodyOps finalCtx.allFreeVars with
-      | .ok text => referencesNatToken text
-      | .error _ => true
-    let preludeOps := (if natNeeded then natOps else #[]) ++ seqOps ++ vecOps
+    -- Boole has grammar-level `nat`/`pos` with a binary-datatype library that
+    -- `Strata.Boole.verify` injects itself, so the translator's `nat` prelude is
+    -- loaded for name registration only and never emitted; its names are
+    -- rendered as Boole's native operator surface (`nativeNatNames`).
+    let _ := natOps
+    let preludeOps := seqOps ++ vecOps
     match Boole.Emit.renderProgram preludeOps bodyOps finalCtx.allFreeVars with
     | .ok output =>
       let output := if opts.only.isEmpty then output else pruneUnreferencedDecls output
       let output := if opts.shortNames then shortenNames allDecls output else output
+      let output := nativeNatNames output
       -- final compaction: `tidy`'s blank line between declarations (needed above,
       -- to find block boundaries for pruning/renaming) is not wanted in the
       -- rendered program — no separators between declarations at all, matching
@@ -497,16 +502,16 @@ unsafe def main (args : List String) : IO Unit := do
   match parseCli args with
   | .error e => IO.eprintln s!"Error: {e}"; IO.Process.exit 2
   | .ok (opts, [path]) =>
-    Boole.Flags.u8AsIntRef.set opts.u8AsInt; Boole.Flags.natAsIntRef.set opts.natAsInt
+    Boole.Flags.u8AsIntRef.set opts.u8AsInt
     Boole.Flags.literalConstsAsAxiomsRef.set opts.literalConstsAsAxioms
     Boole.Flags.totalSelectRef.set opts.totalSelect
     Boole.Flags.inlineSpecFnsRef.set opts.inlineSpecFns
     genBooleFromFile path IO.println opts
   | .ok (opts, [path, toFile]) =>
-    Boole.Flags.u8AsIntRef.set opts.u8AsInt; Boole.Flags.natAsIntRef.set opts.natAsInt
+    Boole.Flags.u8AsIntRef.set opts.u8AsInt
     Boole.Flags.literalConstsAsAxiomsRef.set opts.literalConstsAsAxioms
     Boole.Flags.totalSelectRef.set opts.totalSelect
     Boole.Flags.inlineSpecFnsRef.set opts.inlineSpecFns
     genBooleFromFile path (IO.FS.writeFile toFile) opts
   | .ok _ =>
-    IO.println "Usage: ./verus-lean [boole] [--only f,g] [--u8-as-int] [--nat-as-int] [--drop-proof-hints] [--short-names] [--values-invariants] [--literal-consts-as-axioms] <input.json> [output.boole.st]"
+    IO.println "Usage: ./verus-lean [boole] [--only f,g] [--u8-as-int] [--drop-proof-hints] [--short-names] [--values-invariants] [--literal-consts-as-axioms] <input.json> [output.boole.st]"

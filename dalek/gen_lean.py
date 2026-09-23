@@ -65,7 +65,7 @@ Benchmark: {fn} — translated by verus-lean from the Verus export of dalek-lite
 
 GENERATED FILE.  Produced by `verus-boogie/dalek/rust_to_boole.sh {fn}`:
   1. the Verus fork exports the VLIR of the crate modules the function reaches;
-  2. `verus-lean boole --only {fn} --u8-as-int --nat-as-int --drop-proof-hints
+  2. `verus-lean boole --only {fn} --u8-as-int --drop-proof-hints
      --values-invariants --literal-consts-as-axioms --index-by-prefix --total-select --short-names`
      turns them into the Boole program below (callees as contract stubs, u8 and nat
      as int with their typing facts, no Verus proof hints, the recursive spec fn

@@ -92,7 +92,7 @@ inductive NumKind where
     faithful unbounded `int`, then casts exactly to `bv128`. -/
 def numKindOfTyp? : Typ → Option NumKind
   | .Int => some .int
-  | .Nat => if Flags.natAsInt () then some .int else some .nat
+  | .Nat => some .nat
   | .UInt w => if isSupportedBvWidth w then some (.bv w false) else some .int
   | .SInt w => if isSupportedBvWidth w then some (.bv w true) else some .int
   | .USize => some (.bv usizeBitWidth false)

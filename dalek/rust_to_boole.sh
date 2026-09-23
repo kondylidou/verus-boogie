@@ -31,7 +31,6 @@
 #        --only <fn>    keep what <fn> transitively needs; other exec/proof fns become
 #                       contract stubs (assume false)
 #        --u8-as-int    u8 as int      (lean-smt has no bv->int conversion)
-#        --nat-as-int   nat as int     (no uninterpreted nat prelude)
 #        --drop-proof-hints  no Verus lemma calls or ghost bookkeeping (asserts kept)
 #        --values-invariants  a congruence-shaped loop invariant f(a) == f(b), f a mod
 #                       reduction, becomes a == b (no modular arithmetic left for Lean)
@@ -109,7 +108,7 @@ for m in $EXTRA_MODULES; do args="$args --verify-module $m"; done
 echo "exported: $(ls "$JSON_DIR"/*.json | xargs -n1 basename | tr '\n' ' ')"
 
 # 3. translate
-"$VERUS_LEAN" boole --only "$FN" --u8-as-int --nat-as-int --drop-proof-hints --values-invariants --literal-consts-as-axioms --index-by-prefix --total-select --short-names "$JSON_DIR" "$OUT" 2> "$HERE/out/$FN.translate.log"
+"$VERUS_LEAN" boole --only "$FN" --u8-as-int --drop-proof-hints --values-invariants --literal-consts-as-axioms --index-by-prefix --total-select --short-names "$JSON_DIR" "$OUT" 2> "$HERE/out/$FN.translate.log"
 echo "wrote $OUT ($(wc -l < "$OUT" | tr -d ' ') lines)"
 grep -q "assume false" "$OUT" && grep -A3 "procedure [A-Za-z_]*_$FN " "$OUT" | grep -q "assume false" && { echo "ERROR: the entry procedure has no body" >&2; exit 1; }
 

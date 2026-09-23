@@ -130,7 +130,6 @@ partial def typToBooleType (ty : Typ) : BuildM BType :=
   | .Bool => pure boolTy
   | .Int => pure intTy
   | .Nat => do
-    if Flags.natAsInt () then pure intTy else
     requireSupport .nat
     let idx ← resolveFreeVar "nat"
     pure (fvarTy idx)
@@ -983,36 +982,22 @@ partial def componentLenFacts (ty : Typ) (mk : BuildM BExpr)
 def boundaryLenFacts (ty : Typ) (mk : BuildM BExpr) : BuildM (List BExpr) :=
   if (arrayFixedLen? ty).isSome then pure [] else componentLenFacts ty mk
 
-/-- (`--nat-as-int`) `0 <= x` for a `nat`-typed binding: the typing fact the
-    `int` lowering loses. -/
-def natFact? (ty : Typ) (mk : BuildM BExpr) : BuildM (Option BExpr) := do
-  if !(Flags.natAsInt ()) then return none
-  match stripTypDecoration ty with
-  | .Nat => return some (Bld.intLe (Bld.intConst 0) (← mk))
-  | _ => return none
-
 /-- Length contracts for wrapper- and tuple-typed bindings: a `requires` per
     input fact, an `ensures` per output fact (`boundaryLenFacts`).  Every fn
     boundary carries the facts, so callers discharge their `_calls_`
     obligations from the matching `ensures`.  Emit these before the user
     spec: each spec clause's definedness is checked with only the preceding
     clauses assumed.  Must run in the scope where the bindings resolve. -/
-def wrapperLenSpecElts (inputs outputs : List (String × Typ)) (natReqs : Bool := true) :
+def wrapperLenSpecElts (inputs outputs : List (String × Typ)) :
     BuildM (Array (BooleDDM.SpecElt SourceRange)) := do
   if !(← getSynthConfig).fixedArrayLengths then return #[]
   let mut elts : Array (BooleDDM.SpecElt SourceRange) := #[]
   for (name, ty) in inputs do
     for fact in (← boundaryLenFacts ty (resolveVar name)) do
       elts := elts.push (.requires_spec default noLabel (ann none) fact)
-    if natReqs then
-      if let some fact ← natFact? ty (resolveVar name) then
-        elts := elts.push (.requires_spec default noLabel (ann none) fact)
   for (name, ty) in outputs do
     for fact in (← boundaryLenFacts ty (resolveVar name)) do
       elts := elts.push (.ensures_spec default noLabel (ann none) fact)
-    if natReqs then
-      if let some fact ← natFact? ty (resolveVar name) then
-        elts := elts.push (.ensures_spec default noLabel (ann none) fact)
   return elts
 
 /-- One `Sequence.length(binding) == N` spec elt per direct `[T; N]` binding,
@@ -1050,24 +1035,15 @@ def fixedArrayParamReqElts (inputs : List (String × Typ)) :
     `Sequence.length(p) == N` (`fixedArrayParamReqElts`); wrapper and tuple
     params get their facts prepended (`wrapperLenSpecElts`). -/
 def specFnParamLenElts (inputs : List (String × Typ))
-    (elts : Array (BooleDDM.SpecElt SourceRange)) (natReqs : Bool := false) :
+    (elts : Array (BooleDDM.SpecElt SourceRange)) :
     BuildM (Array (BooleDDM.SpecElt SourceRange)) := do
   if !(← getSynthConfig).fixedArrayLengths then return elts
-  -- `natReqs`: `0 <= p` for `nat` params as `requires`.  Only a recursive spec
-  -- fn needs it (its measure and its own body's index arithmetic); on a plain
-  -- definition it would only add caller obligations that Verus's typing never
-  -- had, and a caller inside a recursive body cannot discharge (the `_nat`
-  -- axiom of the enclosing function is not in scope there).
   -- `--total-select`: array reads are total, so the length/range facts are
   -- not needed for definedness; they reach the solver through procedure
-  -- contracts and loop invariants instead (the `nat` requires stay).
+  -- contracts and loop invariants instead.
   if Flags.totalSelect () then
-    let mut natElts : Array (BooleDDM.SpecElt SourceRange) := #[]
-    if natReqs then
-      for (name, ty) in inputs do
-        if let some fact ← natFact? ty (resolveVar name) then natElts := natElts.push (mkLenReq fact)
-    return natElts ++ elts
-  pure ((← wrapperLenSpecElts inputs [] natReqs) ++ elts ++ (← fixedArrayParamReqElts inputs))
+    return elts
+  pure ((← wrapperLenSpecElts inputs []) ++ elts ++ (← fixedArrayParamReqElts inputs))
 
 
 mutual
@@ -3061,25 +3037,6 @@ private def recFnUnfoldingAxiom (fnName : String) (inputs : List (String × Typ)
     pure (forallExpr binders eqExpr)
   return .command_axiom default VerusLean.Boole.Builder.noMd (someLabel s!"{fnName}_unfold") axiomExpr
 
-/-- (`--nat-as-int`) `∀ params :: guard ==> 0 <= f(params)` for a `nat`-valued
-    function the solver sees only by name (bodiless or recursive): the typing
-    fact of its result. -/
-private def natResultAxiom (fnName : String) (inputs : List (String × Typ))
-    (guard : List BExpr) : BuildM BCmd := do
-  let fnIdx ← resolveFreeVar fnName
-  let k := inputs.length
-  let argBvars := (List.range k).map (fun i => Bld.bvar (k - 1 - i))
-  let app := if k == 0 then Bld.fvar fnIdx else Bld.appN (Bld.fvar fnIdx) argBvars
-  let fact := Bld.intLe (Bld.intConst 0) app
-  let fact := match guard with
-    | [] => fact
-    | g :: gs => Bld.boolImplies (gs.foldl Bld.boolAnd g) fact
-  let axiomExpr ← if k == 0 then pure fact else do
-    let binders ← inputs.toArray.mapM (fun (x, ty) => do
-      pure (sanitizeVarName x, ← typToBooleType ty))
-    pure (forallExpr binders fact)
-  return .command_axiom default VerusLean.Boole.Builder.noMd (someLabel s!"{fnName}_nat") axiomExpr
-
 def specFnToBoole (env : VarEnv) (emitBody : Bool) (f : SpecFn) : BuildM (List BCmd) := do
   -- An `arbitrary()` body lowers as declaration-only (`exprIsBareArbitrary`):
   -- same semantics (unspecified value), no dangling `Pervasive_arbitrary`.
@@ -3143,8 +3100,6 @@ def specFnToBoole (env : VarEnv) (emitBody : Bool) (f : SpecFn) : BuildM (List B
     else pure none
     -- the domain the axioms below are guarded by: `nat` params and `recommends`
     let mut guard : List BExpr := []
-    for (x, ty) in f.inputs do
-      if let some g ← natFact? ty (resolveVar x) then guard := guard ++ [g]
     for r in f.recommends do
       guard := guard ++ [← expToBooleFlat envLocal (some .Bool) r]
     -- Synthesise variant-precondition `requires` for Verus's inline accessor
@@ -3178,9 +3133,6 @@ def specFnToBoole (env : VarEnv) (emitBody : Bool) (f : SpecFn) : BuildM (List B
         | some s => decreasesToMeasureAnn envLocal [s]
         | none => pure (Bld.mkMeasure none)
     pure (body?, elts, decrAnn, guard)
-  let natAxiom? ← do
-    if Flags.natAsInt () && (f.body.isNone || f.isRecursive) && stripTypDecoration f.returnType == .Nat
-    then pure (some (← natResultAxiom fnName f.inputs guard)) else pure none
   match body? with
   | some body =>
     if f.isRecursive then
@@ -3199,9 +3151,9 @@ def specFnToBoole (env : VarEnv) (emitBody : Bool) (f : SpecFn) : BuildM (List B
       -- defining axiom from Strata; only plain-measure recursion needs one here.
       if casesIdx?.isNone && (← getSynthConfig).recFnUnfold then
         let unfoldAxiom ← recFnUnfoldingAxiom fnName f.inputs body guard
-        pure ([recCmd, unfoldAxiom] ++ natAxiom?.toList)
+        pure ([recCmd, unfoldAxiom])
       else
-        pure ([recCmd] ++ natAxiom?.toList)
+        pure ([recCmd])
     else
       -- Auto-inline lambda-bearing spec functions.  Strata's SMT encoder
       -- can't axiomatize a function whose body contains an unapplied
@@ -3222,7 +3174,7 @@ def specFnToBoole (env : VarEnv) (emitBody : Bool) (f : SpecFn) : BuildM (List B
         (ann specElts) body inlineAnn]
   | none =>
     pure ([.command_fndecl default VerusLean.Boole.Builder.noMd name typeArgs inputBindings outputTy]
-      ++ natAxiom?.toList)
+     )
 
 /-! ### ProofFn/ExecFn → BCmd -/
 

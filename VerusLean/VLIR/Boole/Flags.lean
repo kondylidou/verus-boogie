@@ -6,7 +6,6 @@
 
     --u8-as-int   model `u8` as `int` (with explicit `0 <= x < 256` facts on
                   the bindings the translator already annotates with length facts);
-    --nat-as-int  model `nat` as `int` (no `nat` prelude, no `nat.toInt`/`nat.fromInt`).
 
   The numeric-domain classification (`Coercions`) is pure and consulted from
   hundreds of sites, so the toggles are process globals read through
@@ -15,7 +14,6 @@
 namespace VerusLean.Boole.Flags
 
 initialize u8AsIntRef : IO.Ref Bool ← IO.mkRef false
-initialize natAsIntRef : IO.Ref Bool ← IO.mkRef false
 /-- `--short-names`: emit the last path segment of every name (`group_canonical`
     instead of `Specs_Scalar52_specs_group_canonical`), except where two program
     names would collide (`ambiguousShortRef`, computed in `Main`) and for impl
@@ -31,7 +29,6 @@ initialize totalSelectRef : IO.Ref Bool ← IO.mkRef false
 initialize inlineSpecFnsRef : IO.Ref Bool ← IO.mkRef false
 
 private unsafe def u8AsIntImpl (_ : Unit) : Bool := unsafeBaseIO u8AsIntRef.get
-private unsafe def natAsIntImpl (_ : Unit) : Bool := unsafeBaseIO natAsIntRef.get
 private unsafe def shortNamesImpl (_ : Unit) : Bool := unsafeBaseIO shortNamesRef.get
 private unsafe def ambiguousShortImpl (_ : Unit) : List String := unsafeBaseIO ambiguousShortRef.get
 private unsafe def literalConstsAsAxiomsImpl (_ : Unit) : Bool := unsafeBaseIO literalConstsAsAxiomsRef.get
@@ -40,8 +37,6 @@ private unsafe def inlineSpecFnsImpl (_ : Unit) : Bool := unsafeBaseIO inlineSpe
 
 /-- `--u8-as-int` is on. -/
 @[implemented_by u8AsIntImpl] opaque u8AsInt (_ : Unit) : Bool
-/-- `--nat-as-int` is on. -/
-@[implemented_by natAsIntImpl] opaque natAsInt (_ : Unit) : Bool
 /-- `--short-names` is on. -/
 @[implemented_by shortNamesImpl] opaque shortNames (_ : Unit) : Bool
 /-- Short names that several program names share (kept long). -/

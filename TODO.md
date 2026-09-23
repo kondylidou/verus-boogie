@@ -123,13 +123,6 @@ Nothing below is committed yet.  The test suite (`tests/`) has NOT been re-run a
 - **`--u8-as-int` range facts** (`u8RangeFacts`): `0 <= s[k] < 256` for `[u8; N]` arrays — direct
   params (`fixedArrayLenElts`), wrapper fields (in `<T>_wf`), literal constants.  Closes the gap
   listed under "partial" below.
-- **`--nat-as-int` typing facts** (`natFact?`, `natResultAxiom`): `requires 0 <= p` for `nat`
-  params of procedures and of *recursive* spec fns (their measure and body arithmetic need it);
-  `ensures 0 <= r` for `nat` results of procedures; for a `nat`-valued spec fn the solver sees only
-  by name (bodiless or recursive) an axiom `<f>_nat : ∀ params :: guard ==> 0 <= f(params)`.  Not
-  as `requires` on plain definitions: Verus's typing never made callers prove it, and inside a
-  recursive body the fact about the recursive call is unprovable (the `_nat` axiom is declared after
-  the function).
 - **Recursive-fn `_unfold` axiom guarded by the function's domain** (`recommends` + `nat` facts):
   `∀ params :: guard ==> f(params) == body`.  Verus's own definitional axiom is unconditional; the
   guard is sound (weaker) and stops the axiom from being instantiated into the negative range on the
@@ -162,17 +155,21 @@ Nothing below is committed yet.  The test suite (`tests/`) has NOT been re-run a
   body is a wrapper struct around a literal array is emitted uninterpreted with a length axiom and
   an element axiom.  Only the uniform-array case has been exercised.
 
-- **`Flags.lean`: process-global toggles read through `unsafeBaseIO`** for `--u8-as-int` and
-  `--nat-as-int`.  `Coercions` is pure and consulted from many sites, so the flags were not
+- **`Flags.lean`: process-global toggles read through `unsafeBaseIO`** for `--u8-as-int` (and
+  the other flags).  `Coercions` is pure and consulted from many sites, so the flags were not
   threaded through the config.  Proper fix: carry them in `SynthConfig`/`BuildCtx` and make
   `Coercions` take the config (or precompute the numeric-domain table once).
 - **`--u8-as-int`**: removes width 8 from `supportedBvWidths`, so `u8` falls into the existing
   "unsupported width → int" paths; sequence literals of `u8` become `Sequence.of_int`; range facts
   for `[u8; N]` arrays and wrappers (above).  Missing: range facts on scalar `u8` bindings; exec-mode
   wrapping arithmetic on `u8` under the flag is untested.  Only exercised on `sum_of_slice`.
-- **`--nat-as-int`**: `nat` lowers to `int`, casts become identities, nat-native ops are not
-  selected; typing facts as above.  Missing: `nat.sub` (total, prelude-defined) vs `int` subtraction
-  semantics differ.  Only exercised on `sum_of_slice`.
+- ~~`--nat-as-int`~~ **removed (2026-09-23).**  The translator emits Boole's own `nat`
+  (`Main.nativeNatNames`; the `prelude/Nat.boole.st` block is loaded for name registration only,
+  never emitted — `Strata.Boole.verify` injects the binary-datatype library).  With Strata-Boole
+  #14 (library as uninterpreted symbols + axioms) `sum_of_slice` verifies 43/43 at Level 2.
+  Level 3 does not yet work on native `nat`: Strata's VC-to-Lean translation
+  (`Strata/DL/SMT/Translate.lean`) has no datatype support — next Strata PR.  Until then the
+  keynote file's Level 3 theorem cannot be regenerated.
 - **`--index-by-prefix`** is a shape rewrite for one idiom (fold over `subrange(s, 0, len - 1)`);
   the `k as int` cast on the count and the dropping of `=~=` hints are tied to that idiom.
 - **`--inline-spec-fns` (tried, not wired into the script): does not get single-line `all_goals smt`

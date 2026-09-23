@@ -60,11 +60,9 @@ def applyCast (need : SupportDecl) (e : BExpr) : BuildM BExpr := do
     if signed then pure (Bld.castToSInt (Bld.bvTy w) e)
     else pure (Bld.castToInt (Bld.bvTy w) e)
   | .natToInt =>
-    if Flags.natAsInt () then pure e else
     let idx ← resolveFreeVar "nat.toInt"
     pure (Bld.app (Bld.fvar idx) e)
   | .intToNat =>
-    if Flags.natAsInt () then pure e else
     let idx ← resolveFreeVar "nat.fromInt"
     pure (Bld.app (Bld.fvar idx) e)
   | .intToBv w _signed =>
@@ -80,7 +78,6 @@ def applyCast (need : SupportDecl) (e : BExpr) : BuildM BExpr := do
   | .bvToNat w signed =>
     let eInt := if signed then Bld.castToSInt (Bld.bvTy w) e
                 else Bld.castToInt (Bld.bvTy w) e
-    if Flags.natAsInt () then pure eInt else
     let idx ← resolveFreeVar "nat.fromInt"
     pure (Bld.app (Bld.fvar idx) eInt)
   | _ => genericCast need e

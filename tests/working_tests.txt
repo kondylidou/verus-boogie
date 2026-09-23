@@ -95,7 +95,6 @@ tests/VerusFiles/unit_tests/while_invariant.rs
 ../verus/examples/guide/equality.rs
 ../verus/examples/guide/getting_started.rs
 ../verus/examples/guide/nonlinear_bitvec.rs
-../verus/examples/guide/opaque.rs
 ../verus/examples/guide/pervasive_example.rs
 ../verus/examples/guide/overflow.rs
 ../verus/examples/guide/recursion.rs

@@ -99,7 +99,11 @@ classify_boole_verify_log() {
     # native emission is right (we keep `as_int` rather than reverting to an
     # uninterpreted opaque cast); the gap is Strata-side monomorphization of
     # generics ([VERIFY-generic-typevar-ddm]), so classify it as a Strata gap.
-    if grep -qE "Unsupported expression|Unsupported typed operator|unexpected token '\('; expected '\)'|Undeclared type or category Tuple|Unknown bound variable with index|[rR]ecursive function .* requires .*@\[cases\]|requires a bitvector source type.*BooleType\.tvar" "$log"; then
+    #
+    # `Cannot encode function .* lambda expression` is Strata's SMT encoder
+    # refusing a spec fn whose body contains a closure (`crypto_noref`); the
+    # older wording of the same refusal is matched by the patterns above.
+    if grep -qE "Unsupported expression|Cannot encode function .* lambda expression|Unsupported typed operator|unexpected token '\('; expected '\)'|Undeclared type or category Tuple|Unknown bound variable with index|[rR]ecursive function .* requires .*@\[cases\]|requires a bitvector source type.*BooleType\.tvar" "$log"; then
       echo "skip_gap"
       return 0
     fi
@@ -148,8 +152,20 @@ classify_boole_verify_log() {
   # pass. Per-obligation `🚨 Solver Timeout` is cvc5 *running out of time*
   # within the budget — nondeterministic and budget-sensitive — so it is left
   # unflagged; a whole-run timeout is handled above as `skip_solver_timeout`.
+  # Strata's SMT encoder refuses a spec fn whose body contains a closure per
+  # obligation (`Result: 🚨 SMT Encoding Error! Cannot encode function ...
+  # lambda expression`), not as a Lean `error:`, so the gap check above does
+  # not see it; it is the same Strata gap (`crypto_noref`).
+  if grep -qE "SMT Encoding Error! Cannot encode function .* lambda expression" "$log"; then
+    echo "skip_gap"
+    return 0
+  fi
   local unexpected_fails
-  unexpected_fails="$(awk -v pat="$expected_fail_pattern" '
+  # Patterns reach awk via ENVIRON, not `-v`: `-v` interprets backslash
+  # escapes, so `\[` in a pattern becomes `[` and awk aborts on the
+  # unterminated bracket expression.
+  unexpected_fails="$(PAT="$expected_fail_pattern" awk '
+    BEGIN { pat = ENVIRON["PAT"] }
     /^Obligation:/ { obligation = $0; sub(/^Obligation: */, "", obligation); next }
     /^Result: ❌ fail/ || /^Result: 🚨 SMT Encoding Error/ {
       if (pat == "" || obligation !~ pat) {
@@ -171,7 +187,8 @@ classify_boole_verify_log() {
   fi
   if [ -n "$known_translator_bug_pattern" ]; then
     local non_bug_fails
-    non_bug_fails="$(printf '%s\n' "$unexpected_fails" | awk -v pat="$known_translator_bug_pattern" '
+    non_bug_fails="$(printf '%s\n' "$unexpected_fails" | PAT="$known_translator_bug_pattern" awk '
+      BEGIN { pat = ENVIRON["PAT"] }
       $0 !~ pat { print }
     ')"
     if [ -z "$non_bug_fails" ]; then
@@ -210,8 +227,9 @@ expected_boole_fail_pattern_for_wrapper() {
     */vlir-tests/by_lean.lean)       echo 'lean_test_ensures|assert_([4-9]|[1-9][0-9])_' ;;
     # `matching.rs` intentionally fails on `assert(s is Soccer)` (an
     # unconstrained enum) and `is_insect(mammal) == 6` (calls a `->`
-    # accessor with the wrong variant precondition).
-    */vlir-tests/matching.lean)      echo 'assert_' ;;
+    # accessor with the wrong variant precondition; the precondition
+    # obligation is raised on the assert and on the assume that follows it).
+    */vlir-tests/matching.lean)      echo 'assert_|calls_is_insect_' ;;
     # verus/examples/*.rs with `expect-failures` header comment
     */verus-examples/assertions.lean) echo '.' ;;
     */verus-examples/debug.lean)      echo '.' ;;
