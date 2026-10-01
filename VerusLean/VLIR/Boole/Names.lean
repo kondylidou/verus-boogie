@@ -6,7 +6,6 @@
   module centralizes the syntactic name policy used before BooleDDM lowering.
 -/
 import VerusLean.VLIR.Defs
-import VerusLean.VLIR.Boole.Flags
 
 namespace VerusLean.Boole.Names
 

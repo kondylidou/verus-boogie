@@ -1,15 +1,13 @@
 program Boole;
-type Scalar := Sequence int;
-function Scalar_wf (s : Scalar) : bool;
-axiom [Scalar_wf_def]: ∀ s : Scalar :: Scalar_wf(s) == (Sequence.length(s) == 32 && ∀ k : int :: 0 <= k && k < 32 ==> 0 <= Sequence.select!(s, k) && Sequence.select!(s, k) < 256);
-function u8_32_as_nat (bytes : Sequence int) : nat {
-  nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_mul(nat_fromInt(Sequence.select!(bytes, 0)), nat_fromInt(1)), nat_mul(nat_fromInt(Sequence.select!(bytes, 1)), nat_fromInt(256))), nat_mul(nat_fromInt(Sequence.select!(bytes, 2)), nat_fromInt(65536))), nat_mul(nat_fromInt(Sequence.select!(bytes, 3)), nat_fromInt(16777216))), nat_mul(nat_fromInt(Sequence.select!(bytes, 4)), nat_fromInt(4294967296))), nat_mul(nat_fromInt(Sequence.select!(bytes, 5)), nat_fromInt(1099511627776))), nat_mul(nat_fromInt(Sequence.select!(bytes, 6)), nat_fromInt(281474976710656))), nat_mul(nat_fromInt(Sequence.select!(bytes, 7)), nat_fromInt(72057594037927936))), nat_mul(nat_fromInt(Sequence.select!(bytes, 8)), nat_fromInt(18446744073709551616))), nat_mul(nat_fromInt(Sequence.select!(bytes, 9)), nat_fromInt(4722366482869645213696))), nat_mul(nat_fromInt(Sequence.select!(bytes, 10)), nat_fromInt(1208925819614629174706176))), nat_mul(nat_fromInt(Sequence.select!(bytes, 11)), nat_fromInt(309485009821345068724781056))), nat_mul(nat_fromInt(Sequence.select!(bytes, 12)), nat_fromInt(79228162514264337593543950336))), nat_mul(nat_fromInt(Sequence.select!(bytes, 13)), nat_fromInt(20282409603651670423947251286016))), nat_mul(nat_fromInt(Sequence.select!(bytes, 14)), nat_fromInt(5192296858534827628530496329220096))), nat_mul(nat_fromInt(Sequence.select!(bytes, 15)), nat_fromInt(1329227995784915872903807060280344576))), nat_mul(nat_fromInt(Sequence.select!(bytes, 16)), nat_fromInt(340282366920938463463374607431768211456))), nat_mul(nat_fromInt(Sequence.select!(bytes, 17)), nat_fromInt(87112285931760246646623899502532662132736))), nat_mul(nat_fromInt(Sequence.select!(bytes, 18)), nat_fromInt(22300745198530623141535718272648361505980416))), nat_mul(nat_fromInt(Sequence.select!(bytes, 19)), nat_fromInt(5708990770823839524233143877797980545530986496))), nat_mul(nat_fromInt(Sequence.select!(bytes, 20)), nat_fromInt(1461501637330902918203684832716283019655932542976))), nat_mul(nat_fromInt(Sequence.select!(bytes, 21)), nat_fromInt(374144419156711147060143317175368453031918731001856))), nat_mul(nat_fromInt(Sequence.select!(bytes, 22)), nat_fromInt(95780971304118053647396689196894323976171195136475136))), nat_mul(nat_fromInt(Sequence.select!(bytes, 23)), nat_fromInt(24519928653854221733733552434404946937899825954937634816))), nat_mul(nat_fromInt(Sequence.select!(bytes, 24)), nat_fromInt(6277101735386680763835789423207666416102355444464034512896))), nat_mul(nat_fromInt(Sequence.select!(bytes, 25)), nat_fromInt(1606938044258990275541962092341162602522202993782792835301376))), nat_mul(nat_fromInt(Sequence.select!(bytes, 26)), nat_fromInt(411376139330301510538742295639337626245683966408394965837152256))), nat_mul(nat_fromInt(Sequence.select!(bytes, 27)), nat_fromInt(105312291668557186697918027683670432318895095400549111254310977536))), nat_mul(nat_fromInt(Sequence.select!(bytes, 28)), nat_fromInt(26959946667150639794667015087019630673637144422540572481103610249216))), nat_mul(nat_fromInt(Sequence.select!(bytes, 29)), nat_fromInt(6901746346790563787434755862277025452451108972170386555162524223799296))), nat_mul(nat_fromInt(Sequence.select!(bytes, 30)), nat_fromInt(1766847064778384329583297500742918515827483896875618958121606201292619776))), nat_mul(nat_fromInt(Sequence.select!(bytes, 31)), nat_fromInt(452312848583266388373324160190187140051835877600158453279131187530910662656)))
+type Scalar := Sequence (bv W8);
+function u8_32_as_nat (bytes : Sequence (bv W8)) : nat {
+  nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_add(nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 0))), nat_fromInt(1)), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 1))), nat_fromInt(256))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 2))), nat_fromInt(65536))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 3))), nat_fromInt(16777216))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 4))), nat_fromInt(4294967296))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 5))), nat_fromInt(1099511627776))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 6))), nat_fromInt(281474976710656))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 7))), nat_fromInt(72057594037927936))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 8))), nat_fromInt(18446744073709551616))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 9))), nat_fromInt(4722366482869645213696))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 10))), nat_fromInt(1208925819614629174706176))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 11))), nat_fromInt(309485009821345068724781056))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 12))), nat_fromInt(79228162514264337593543950336))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 13))), nat_fromInt(20282409603651670423947251286016))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 14))), nat_fromInt(5192296858534827628530496329220096))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 15))), nat_fromInt(1329227995784915872903807060280344576))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 16))), nat_fromInt(340282366920938463463374607431768211456))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 17))), nat_fromInt(87112285931760246646623899502532662132736))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 18))), nat_fromInt(22300745198530623141535718272648361505980416))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 19))), nat_fromInt(5708990770823839524233143877797980545530986496))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 20))), nat_fromInt(1461501637330902918203684832716283019655932542976))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 21))), nat_fromInt(374144419156711147060143317175368453031918731001856))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 22))), nat_fromInt(95780971304118053647396689196894323976171195136475136))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 23))), nat_fromInt(24519928653854221733733552434404946937899825954937634816))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 24))), nat_fromInt(6277101735386680763835789423207666416102355444464034512896))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 25))), nat_fromInt(1606938044258990275541962092341162602522202993782792835301376))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 26))), nat_fromInt(411376139330301510538742295639337626245683966408394965837152256))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 27))), nat_fromInt(105312291668557186697918027683670432318895095400549111254310977536))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 28))), nat_fromInt(26959946667150639794667015087019630673637144422540572481103610249216))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 29))), nat_fromInt(6901746346790563787434755862277025452451108972170386555162524223799296))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 30))), nat_fromInt(1766847064778384329583297500742918515827483896875618958121606201292619776))), nat_mul(nat_fromInt(as_uint(Sequence.select!(bytes, 31))), nat_fromInt(452312848583266388373324160190187140051835877600158453279131187530910662656)))
 }
 function group_order () : nat {
   nat_fromInt(7237005577332262213973186563042994240857116359379907606001950938285454250989)
 }
 function is_canonical_scalar (s : Scalar) : bool {
-  nat_lt(u8_32_as_nat(s), group_order) && Sequence.select!(s, 31) <= 127
+  nat_lt(u8_32_as_nat(s), group_order) && Sequence.select!(s, 31) <= bv{8}(127)
 }
 function scalar_as_nat (s : Scalar) : nat {
   u8_32_as_nat(s)
@@ -17,7 +15,7 @@ function scalar_as_nat (s : Scalar) : nat {
 function group_canonical (n : nat) : nat {
   nat_mod(n, group_order)
 }
-function u8_32_as_group_canonical (bytes : Sequence int) : nat {
+function u8_32_as_group_canonical (bytes : Sequence (bv W8)) : nat {
   group_canonical(u8_32_as_nat(bytes))
 }
 function scalar_as_canonical (s : Scalar) : nat {
@@ -42,16 +40,13 @@ function Scalar_add_req (self : Scalar, rhs : Scalar) : bool {
 function Scalar_add_spec (self : Scalar, rhs : Scalar) : Scalar;
 function Scalar_ZERO () : Scalar;
 axiom [Scalar_ZERO_lit_0]: Sequence.length(Scalar_ZERO) == 32;
-axiom [Scalar_ZERO_lit_1]: ∀ k : int :: 0 <= k && k < 32 ==> Sequence.select!(Scalar_ZERO, k) == 0;
+axiom [Scalar_ZERO_lit_1]: ∀ k : int :: 0 <= k && k < 32 ==> Sequence.select!(Scalar_ZERO, k) == bv{8}(0);
 axiom [lemma_scalar_zero_properties_ensures_0]: nat_toInt(scalar_as_nat(Scalar_ZERO)) == 0;
 axiom [lemma_scalar_zero_properties_ensures_1]: nat_lt(scalar_as_nat(Scalar_ZERO), group_order);
 axiom [lemma_scalar_zero_properties_ensures_2]: is_canonical_scalar(Scalar_ZERO);
 axiom [lemma_scalar_zero_properties_ensures_3]: scalar_congruent_nat(Scalar_ZERO, nat_fromInt(0));
 procedure Scalar_add (self : Scalar, _rhs : Scalar) returns (result : Scalar)
 spec {
-  requires Scalar_wf(self);
-  requires Scalar_wf(_rhs);
-  ensures Scalar_wf(result);
   requires Scalar_add_req(self, _rhs);
   ensures Scalar_obeys_add_spec ==> result == Scalar_add_spec(self, _rhs);
   ensures nat_toInt(scalar_as_nat(result)) == nat_toInt(group_canonical(nat_add(scalar_as_nat(self), scalar_as_nat(_rhs))));
@@ -62,8 +57,6 @@ spec {
 };
 procedure sum_of_slice (scalars : Sequence Scalar) returns (result : Scalar)
 spec {
-  requires ∀ i_elem : int :: 0 <= i_elem && i_elem < Sequence.length(scalars) ==> Scalar_wf(Sequence.select(scalars, i_elem));
-  ensures Scalar_wf(result);
   requires ∀ i : int :: 0 <= i && i < Sequence.length(scalars) ==> is_canonical_scalar(Sequence.select(scalars, i));
   ensures nat_lt(scalar_as_nat(result), group_order);
   ensures is_canonical_scalar(result);
@@ -72,12 +65,10 @@ spec {
 {
   var n : int;
   var acc : Scalar;
-  assume Sequence.length(scalars) <= 18446744073709551615;
   n := Sequence.length(scalars);
   acc := Scalar_ZERO;
   for i : int := 0 to Sequence.length(scalars) - 1
     invariant 0 <= i && i <= Sequence.length(scalars)
-    invariant Scalar_wf(acc)
     invariant n == Sequence.length(scalars)
     invariant ∀ j : int :: 0 <= j && j < Sequence.length(scalars) ==> is_canonical_scalar(Sequence.select(scalars, j))
     invariant nat_lt(scalar_as_nat(acc), group_order)

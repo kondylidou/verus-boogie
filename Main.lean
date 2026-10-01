@@ -4,7 +4,6 @@ import VerusLean.VLIR.Boole.Translate
 import VerusLean.VLIR.Boole.Emit
 import VerusLean.VLIR.Boole.Prelude
 import VerusLean.VLIR.Boole.TraitResolve
-import VerusLean.VLIR.Boole.Flags
 import VerusLean.VLIR.Boole.Fold
 import VerusLean.VLIR.Boole.Hints
 import VerusLean.VLIR.Boole.Strengthen
@@ -322,8 +321,6 @@ private def pruneUnreferencedDecls (text : String) : String := Id.run do
 structure CliOptions where
   /-- `--only f,g`: keep only declarations reachable from these functions. -/
   only : List String := []
-  /-- `--u8-as-int`: model `u8` as `int` with explicit range facts. -/
-  u8AsInt : Bool := false
   /-- `--drop-proof-hints`: remove Verus proof scaffolding (lemma calls, ghost
       bookkeeping) from exec bodies; `assert`/`assume` are kept. -/
   dropProofHints : Bool := false
@@ -347,8 +344,6 @@ private def parseCli : List String → Except String (CliOptions × List String)
   | "--only" :: names :: rest => do
     let (o, pos) ← parseCli rest
     pure ({ o with only := o.only ++ (names.splitOn ",").filter (· != "") }, pos)
-  | "--u8-as-int" :: rest => do
-    let (o, pos) ← parseCli rest; pure ({ o with u8AsInt := true }, pos)
   | "--drop-proof-hints" :: rest => do
     let (o, pos) ← parseCli rest; pure ({ o with dropProofHints := true }, pos)
   | "--short-names" :: rest => do
@@ -444,7 +439,15 @@ unsafe def genBooleFromFile
   -- Plan prelude loading from VLIR syntax before BooleDDM construction, then
   -- translate once with the parsed prelude names pre-registered so fvar
   -- indices align with Strata's global context.
-  let synthCfg ← synthConfigFromEnv
+  let envCfg ← synthConfigFromEnv
+  let synthCfg := { envCfg with
+    -- The synthesized `length == N` facts exist to discharge the bounds
+    -- obligations of array reads.  With total reads there are none, so the facts
+    -- are not emitted and contracts stay exactly as written in the Verus source.
+    fixedArrayLengths := envCfg.fixedArrayLengths && !opts.totalSelect
+    totalSelect := opts.totalSelect
+    literalConstsAsAxioms := opts.literalConstsAsAxioms
+    inlineSpecFns := opts.inlineSpecFns }
   let preludePlan := Boole.Prelude.planDecls allDecls
   -- Load each prelude piece separately so the `nat` block can be dropped when
   -- the emitted program never references it.  `nat`'s names are registered
@@ -502,16 +505,8 @@ unsafe def main (args : List String) : IO Unit := do
   match parseCli args with
   | .error e => IO.eprintln s!"Error: {e}"; IO.Process.exit 2
   | .ok (opts, [path]) =>
-    Boole.Flags.u8AsIntRef.set opts.u8AsInt
-    Boole.Flags.literalConstsAsAxiomsRef.set opts.literalConstsAsAxioms
-    Boole.Flags.totalSelectRef.set opts.totalSelect
-    Boole.Flags.inlineSpecFnsRef.set opts.inlineSpecFns
     genBooleFromFile path IO.println opts
   | .ok (opts, [path, toFile]) =>
-    Boole.Flags.u8AsIntRef.set opts.u8AsInt
-    Boole.Flags.literalConstsAsAxiomsRef.set opts.literalConstsAsAxioms
-    Boole.Flags.totalSelectRef.set opts.totalSelect
-    Boole.Flags.inlineSpecFnsRef.set opts.inlineSpecFns
     genBooleFromFile path (IO.FS.writeFile toFile) opts
   | .ok _ =>
-    IO.println "Usage: ./verus-lean [boole] [--only f,g] [--u8-as-int] [--drop-proof-hints] [--short-names] [--values-invariants] [--literal-consts-as-axioms] <input.json> [output.boole.st]"
+    IO.println "Usage: ./verus-lean [boole] [--only f,g] [--drop-proof-hints] [--short-names] [--values-invariants] [--literal-consts-as-axioms] [--index-by-prefix] [--total-select] <input.json> [output.boole.st]"

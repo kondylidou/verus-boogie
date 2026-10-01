@@ -10,7 +10,6 @@
   The `BuildM`-valued cast-insertion helpers live in `Cast.lean`.
 -/
 import VerusLean.VLIR.Defs
-import VerusLean.VLIR.Boole.Flags
 
 namespace VerusLean.Boole.Coercions
 
@@ -24,7 +23,7 @@ def usizeBitWidth : Nat := 64
 def supportedBvWidths : List Nat := [1, 8, 16, 32, 64, 128]
 
 def isSupportedBvWidth (w : Nat) : Bool :=
-  supportedBvWidths.contains w && !(w == 8 && Flags.u8AsInt ())
+  supportedBvWidths.contains w
 
 def bitWidthOfTyp : Typ → Option Nat
   | .UInt w | .SInt w => if isSupportedBvWidth w then some w else none

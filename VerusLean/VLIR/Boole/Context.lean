@@ -74,6 +74,14 @@ inductive SupportDecl where
     it is a safe knob for measuring each aid's impact.  The fact *builders*
     live in `Boole.Synth`; these flags gate their *emission* at each site. -/
 structure SynthConfig where
+  /-- `--total-select`: fixed-size array reads as `Sequence.select!`, and no
+      synthesized definedness `requires` on spec fns (see `Translate`). -/
+  totalSelect : Bool := false
+  /-- `--literal-consts-as-axioms`: see `Translate.declToBoole` (`.specFn`). -/
+  literalConstsAsAxioms : Bool := false
+  /-- `--inline-spec-fns`: shallow, `mod`-free, non-recursive spec fns as Boole
+      `inline function`. -/
+  inlineSpecFns : Bool := false
   /-- Fixed-size-array `Sequence.length(_) == N` facts: parameter
       requires/entry assumes, return ensures, boundary facts on selector
       paths, mutated-in-loop length invariants, and the guarded
@@ -144,8 +152,6 @@ structure BuildCtx where
       value (`length(scalar..bytes(x)) == 32`), matching how bodies index it.
       Built once from the decl set in `declsToBooleProgram`. -/
   wrapperInfo : Std.HashMap String (String × Nat) := {}
-  /-- Element type of the wrapped `[T; N]`, per wrapper datatype name (for `--u8-as-int` range facts). -/
-  wrapperElemTy : Std.HashMap String Typ := {}
   /-- Fields of each monomorphic single-constructor struct, keyed by its Boole
       datatype name.  Lets length facts recurse through datatype selector
       paths (`componentLenFacts`).  Wrapper structs (single `[T; N]` field)

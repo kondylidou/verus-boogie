@@ -46,31 +46,23 @@ Obligation: sum_of_scalars_terminates_1
 Property: assert
 Result: ✅ pass
 
-Obligation: Scalar_add_ensures_3_9846
+Obligation: Scalar_add_ensures_2_9296
 Property: assert
 Result: ✅ pass
 
-Obligation: Scalar_add_ensures_5_9914
+Obligation: Scalar_add_ensures_3_9371
 Property: assert
 Result: ✅ pass
 
-Obligation: Scalar_add_ensures_6_9989
+Obligation: Scalar_add_ensures_4_9496
 Property: assert
 Result: ✅ pass
 
-Obligation: Scalar_add_ensures_7_10114
-Property: assert
-Result: ✅ pass
-
-Obligation: sum_of_slice_pre_sum_of_slice_requires_9_10260_calls_Sequence.select_0
+Obligation: sum_of_slice_pre_sum_of_slice_requires_6_9642_calls_Sequence.select_0
 Property: out-of-bounds access check
 Result: ✅ pass
 
-Obligation: sum_of_slice_pre_sum_of_slice_requires_11_10418_calls_Sequence.select_0
-Property: out-of-bounds access check
-Result: ✅ pass
-
-Obligation: sum_of_slice_post_sum_of_slice_ensures_14_10630_calls_sum_of_scalars_0
+Obligation: sum_of_slice_post_sum_of_slice_ensures_9_9854_calls_sum_of_scalars_0
 Property: assert
 Result: ✅ pass
 
@@ -82,31 +74,27 @@ Obligation: loop_invariant_calls_sum_of_scalars_0
 Property: assert
 Result: ✅ pass
 
-Obligation: insertLoopInvAssert_entry_invariant_loop_10_0
+Obligation: insertLoopInvAssert_entry_invariant_loop_7_0
 Property: assert
 Result: ✅ pass
 
-Obligation: insertLoopInvAssert_entry_invariant_loop_10_1
+Obligation: insertLoopInvAssert_entry_invariant_loop_7_1
 Property: assert
 Result: ✅ pass
 
-Obligation: insertLoopInvAssert_entry_invariant_loop_10_2
+Obligation: insertLoopInvAssert_entry_invariant_loop_7_2
 Property: assert
 Result: ✅ pass
 
-Obligation: insertLoopInvAssert_entry_invariant_loop_10_3
+Obligation: insertLoopInvAssert_entry_invariant_loop_7_3
 Property: assert
 Result: ✅ pass
 
-Obligation: insertLoopInvAssert_entry_invariant_loop_10_4
+Obligation: insertLoopInvAssert_entry_invariant_loop_7_4
 Property: assert
 Result: ✅ pass
 
-Obligation: insertLoopInvAssert_entry_invariant_loop_10_5
-Property: assert
-Result: ✅ pass
-
-Obligation: insertLoopInvAssert_entry_invariant_loop_10_6
+Obligation: insertLoopInvAssert_entry_invariant_loop_7_5
 Property: assert
 Result: ✅ pass
 
@@ -114,58 +102,42 @@ Obligation: init_calls_Sequence.select_0
 Property: out-of-bounds access check
 Result: ✅ pass
 
-Obligation: callElimAssert_Scalar_add_requires_1_9790_3
+Obligation: callElimAssert_Scalar_add_requires_1_9257_3
 Property: assert
 Result: ✅ pass
 
-Obligation: callElimAssert_Scalar_add_requires_2_9818_4
+Obligation: insertLoopInvAssert_arbitrary_iter_maintain_invariant_loop_7_0
 Property: assert
 Result: ✅ pass
 
-Obligation: callElimAssert_Scalar_add_requires_4_9875_5
+Obligation: insertLoopInvAssert_arbitrary_iter_maintain_invariant_loop_7_1
 Property: assert
 Result: ✅ pass
 
-Obligation: insertLoopInvAssert_arbitrary_iter_maintain_invariant_loop_10_0
+Obligation: insertLoopInvAssert_arbitrary_iter_maintain_invariant_loop_7_2
 Property: assert
 Result: ✅ pass
 
-Obligation: insertLoopInvAssert_arbitrary_iter_maintain_invariant_loop_10_1
+Obligation: insertLoopInvAssert_arbitrary_iter_maintain_invariant_loop_7_3
 Property: assert
 Result: ✅ pass
 
-Obligation: insertLoopInvAssert_arbitrary_iter_maintain_invariant_loop_10_2
+Obligation: insertLoopInvAssert_arbitrary_iter_maintain_invariant_loop_7_4
 Property: assert
 Result: ✅ pass
 
-Obligation: insertLoopInvAssert_arbitrary_iter_maintain_invariant_loop_10_3
+Obligation: insertLoopInvAssert_arbitrary_iter_maintain_invariant_loop_7_5
 Property: assert
 Result: ✅ pass
 
-Obligation: insertLoopInvAssert_arbitrary_iter_maintain_invariant_loop_10_4
+Obligation: sum_of_slice_ensures_7_9761
 Property: assert
 Result: ✅ pass
 
-Obligation: insertLoopInvAssert_arbitrary_iter_maintain_invariant_loop_10_5
+Obligation: sum_of_slice_ensures_8_9815
 Property: assert
 Result: ✅ pass
 
-Obligation: insertLoopInvAssert_arbitrary_iter_maintain_invariant_loop_10_6
-Property: assert
-Result: ✅ pass
-
-Obligation: sum_of_slice_ensures_10_10389
-Property: assert
-Result: ✅ pass
-
-Obligation: sum_of_slice_ensures_12_10537
-Property: assert
-Result: ✅ pass
-
-Obligation: sum_of_slice_ensures_13_10591
-Property: assert
-Result: ✅ pass
-
-Obligation: sum_of_slice_ensures_14_10630
+Obligation: sum_of_slice_ensures_9_9854
 Property: assert
 Result: ✅ pass

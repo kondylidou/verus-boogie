@@ -329,8 +329,7 @@ private def seqBuildExpr (seq elem : BExpr) : BuildM BExpr := do
 private partial def seqLiteralCtor? : Typ → Option (Array BExpr → BExpr)
   | .Decorated _ inner    => seqLiteralCtor? inner
   | .UInt 8  | .SInt 8    =>
-    if Flags.u8AsInt () then some (fun vs => .seq_of_int default (ann vs))
-    else some (fun vs => .seq_of_bv8  default (ann vs))
+    some (fun vs => .seq_of_bv8  default (ann vs))
   | .UInt 16 | .SInt 16   => some (fun vs => .seq_of_bv16 default (ann vs))
   | .UInt 32 | .SInt 32   => some (fun vs => .seq_of_bv32 default (ann vs))
   | .UInt 64 | .SInt 64   => some (fun vs => .seq_of_bv64 default (ann vs))
@@ -836,41 +835,24 @@ private partial def substTypParams (subst : List (String × Typ)) : Typ → Typ
     `Sequence.select!` — no definedness obligation, hence no need for a
     `length == N` `requires` on every spec fn that reads one.  This is what
     keeps a spec fn's call sites free of `_calls_` obligations. -/
-def arraySelect (s i : BExpr) : BExpr :=
-  if Flags.totalSelect () then Bld.seqSelectTotal s i else Bld.seqSelect s i
+def arraySelect (total : Bool) (s i : BExpr) : BExpr :=
+  if total then Bld.seqSelectTotal s i else Bld.seqSelect s i
 
 /-- (`--total-select`) Is this indexed operand a fixed-size array `[T; N]`:
     the view of a variable of that type, a boxed array, or a struct field of
     array type?  Such a read (`a@[i]`, `a[i]`) is total. -/
-partial def isFixedArrayOperand (env : VarEnv) (bound : BoundEnv) (e : Exp) : Bool :=
-  Flags.totalSelect () &&
+partial def isFixedArrayOperand (total : Bool) (env : VarEnv) (bound : BoundEnv) (e : Exp) : Bool :=
+  total &&
   match unwrapViewCall e with
-  | .Unary (.Box ty) e => (arrayFixedLen? ty).isSome || isFixedArrayOperand env bound e
-  | .Unary (.Unbox _) e | .Unary .Trigger e => isFixedArrayOperand env bound e
+  | .Unary (.Box ty) e => (arrayFixedLen? ty).isSome || isFixedArrayOperand total env bound e
+  | .Unary (.Unbox _) e | .Unary .Trigger e => isFixedArrayOperand total env bound e
   | .Var v => ((boundType? bound v).orElse (fun _ => env.get? v)).any (fun ty => (arrayFixedLen? ty).isSome)
   | .Unary (.Proj dt _ field _ _) _ => (structFieldExpectedType? env dt field).any (fun ty => (arrayFixedLen? ty).isSome)
   | _ => false
 
 /-- `select` or, for a fixed-size array operand under `--total-select`, `select!`. -/
-def selectFor (env : VarEnv) (bound : BoundEnv) (operand : Exp) (s i : BExpr) : BExpr :=
-  if isFixedArrayOperand env bound operand then Bld.seqSelectTotal s i else Bld.seqSelect s i
-
-/-- (`--u8-as-int`) The range of the bytes of a `[u8; N]` modelled as
-    `Sequence int`: `∀ k :: 0 <= k < N ==> 0 <= s[k] && s[k] < 256` — the
-    typing fact the bit-vector representation carried for free. -/
-def u8RangeFacts (elemTy? : Option Typ) (n : Nat) (mk : BuildM BExpr) : BuildM (List BExpr) := do
-  let isU8 := match elemTy?.map stripTypDecoration with
-    | some (.UInt 8) => true
-    | _ => false
-  if !(Flags.u8AsInt () && isU8) then return []
-  let body ← withScope do
-    pushBoundVar "k"
-    let kE ← resolveVar "k"
-    let s ← mk
-    let inRange := Bld.boolAnd (Bld.intLe (Bld.intConst 0) kE) (Bld.intLt kE (Bld.intConst n))
-    let v := arraySelect s kE
-    pure (Bld.boolImplies inRange (Bld.boolAnd (Bld.intLe (Bld.intConst 0) v) (Bld.intLt v (Bld.intConst 256))))
-  return [forallExpr #[("k", intTy)] body]
+def selectFor (total : Bool) (env : VarEnv) (bound : BoundEnv) (operand : Exp) (s i : BExpr) : BExpr :=
+  if isFixedArrayOperand total env bound operand then Bld.seqSelectTotal s i else Bld.seqSelect s i
 
 /-- The element type of a type that lowers to Strata's `Sequence`: a slice
     `[T]`, a `Vec<T>`, or a `Seq<T>`. -/
@@ -900,8 +882,7 @@ partial def componentLenFacts (ty : Typ) (mk : BuildM BExpr)
   -- function parameter) resolves to the right de Bruijn index there.
   match arrayFixedLen? ty with
   | some n =>
-    let rng ← u8RangeFacts (arrayElemTyp? ty) n mk
-    return Synth.fixedArrayLenFact (← mk) n :: rng
+    return [Synth.fixedArrayLenFact (← mk) n]
   | none =>
     match (← wrapperLenInfo? ty) with
     | some (dtor, n) =>
@@ -1010,9 +991,7 @@ def fixedArrayLenElts (mkElt : BExpr → BooleDDM.SpecElt SourceRange)
     match arrayFixedLen? ty with
     | some n =>
       let e ← resolveVar name
-      -- (`--u8-as-int`) the byte range of a direct `[u8; N]` binding too
-      let rng ← u8RangeFacts (arrayElemTyp? ty) n (resolveVar name)
-      pure ((acc.push (mkElt (Synth.fixedArrayLenFact e n))) ++ (rng.map mkElt).toArray)
+      pure (acc.push (mkElt (Synth.fixedArrayLenFact e n)))
     | none => pure acc) #[]
 
 /-- Unlabeled `requires`/`ensures` constructors for synthesized facts. -/
@@ -1037,12 +1016,8 @@ def fixedArrayParamReqElts (inputs : List (String × Typ)) :
 def specFnParamLenElts (inputs : List (String × Typ))
     (elts : Array (BooleDDM.SpecElt SourceRange)) :
     BuildM (Array (BooleDDM.SpecElt SourceRange)) := do
+  -- Off under `--total-select` (see `Main`): total reads need no length facts.
   if !(← getSynthConfig).fixedArrayLengths then return elts
-  -- `--total-select`: array reads are total, so the length/range facts are
-  -- not needed for definedness; they reach the solver through procedure
-  -- contracts and loop invariants instead.
-  if Flags.totalSelect () then
-    return elts
   pure ((← wrapperLenSpecElts inputs []) ++ elts ++ (← fixedArrayParamReqElts inputs))
 
 
@@ -1212,7 +1187,7 @@ partial def expToBoole (env : VarEnv) (bound : BoundEnv)
   | .Binary .Index lhs rhs => do
     let seqExpr ← expToBoole env bound none lhs
     let intIdx ← expToBoole env bound (some .Int) rhs
-    coerceIndexedResult env bound expected? lhs (selectFor env bound lhs seqExpr intIdx)
+    coerceIndexedResult env bound expected? lhs (selectFor (← getSynthConfig).totalSelect env bound lhs seqExpr intIdx)
   | .Binary op lhs rhs => do
     -- Run arith in `int` when the context demands int or any subtree
     -- mixes int and bv operands. Otherwise bv overflow corrupts the
@@ -1603,7 +1578,7 @@ partial def expToBoole (env : VarEnv) (bound : BoundEnv)
       | [arrayArg, indexArg] =>
         let arrayExpr ← expToBoole env bound none arrayArg
         let intIdx ← expToBoole env bound (some .Int) indexArg
-        coerceIndexedResult env bound expected? arrayArg (arraySelect arrayExpr intIdx)
+        coerceIndexedResult env bound expected? arrayArg (arraySelect (← getSynthConfig).totalSelect arrayExpr intIdx)
       | _ => mkFallback
     else if isArrayFillForCopyTypesName fname then
       match argsFiltered with
@@ -1706,7 +1681,7 @@ partial def expToBoole (env : VarEnv) (bound : BoundEnv)
       | [vArg, iArg] =>
         let seqExpr ← expToBoole env bound none (unwrapViewCall vArg)
         let intIdx ← expToBoole env bound (some .Int) iArg
-        let selected := selectFor env bound vArg seqExpr intIdx
+        let selected := selectFor (← getSynthConfig).totalSelect env bound vArg seqExpr intIdx
         coerceIndexedResult env bound expected? vArg selected
       | _ => mkFallback
     else if fnameStr == "Seq_index" then
@@ -1715,7 +1690,7 @@ partial def expToBoole (env : VarEnv) (bound : BoundEnv)
         -- (`--total-select`) `a@[i]` on a fixed-size array `a : [T; N]` (the
         -- view of a variable, a boxed array, or a struct field of array type)
         -- is a total read: `Sequence.select!`.
-        if isFixedArrayOperand env bound sArg then
+        if isFixedArrayOperand (← getSynthConfig).totalSelect env bound sArg then
           let s ← expToBoole env bound (lookupFnParamTypeFull env fnameStr 0) sArg
           let i ← expToBoole env bound (some .Int) iArg
           coerceIndexedResult env bound expected? sArg (Bld.seqSelectTotal s i)
@@ -2931,8 +2906,8 @@ partial def expHasMod (e : Exp) : Bool :=
     spec fns.  Deep bodies (a 32-term byte sum) and `mod` bodies stay ordinary
     functions: inlined everywhere they slow every lean-smt call down, and
     lean-smt cannot replay cvc5's modular-arithmetic proofs. -/
-def inlineSpecFn? (f : SpecFn) : Bool :=
-  Flags.inlineSpecFns () && !f.isRecursive &&
+def inlineSpecFn? (enabled : Bool) (f : SpecFn) : Bool :=
+  enabled && !f.isRecursive &&
     (match f.body with
      | some b => !expHasMod b && expDepth b <= 16
      | none => false)
@@ -3114,7 +3089,7 @@ def specFnToBoole (env : VarEnv) (emitBody : Bool) (f : SpecFn) : BuildM (List B
     -- Fixed-array length `requires` for `[T; N]` and wrapper-struct params,
     -- then the `recommends` domain conditions — both shared with the
     -- mutual-recursive spec-fn path.
-    let elts ← specFnParamLenElts f.inputs elts f.isRecursive
+    let elts ← specFnParamLenElts f.inputs elts
     let elts ← specFnRecommendsElts envLocal f elts
     let elts := joinSpecFnRequires elts
     -- Lower Verus's serialized `decreases` measure (parsed into
@@ -3167,7 +3142,7 @@ def specFnToBoole (env : VarEnv) (emitBody : Bool) (f : SpecFn) : BuildM (List B
       -- `Seq::map` closures are excluded: they are synthesized into
       -- recursive declarations (`emitSeqMapDecls`), so they leave no
       -- lambda in the translated body.
-      let shouldInline := f.body.any expHasInlineForcingLambda || inlineSpecFn? f
+      let shouldInline := f.body.any expHasInlineForcingLambda || inlineSpecFn? (← getSynthConfig).inlineSpecFns f
       let inlineAnn :=
         if shouldInline then ann (some (.inline default)) else ann none
       pure [.command_fndef default VerusLean.Boole.Builder.noMd name typeArgs inputBindings outputTy
@@ -3569,9 +3544,7 @@ def structToBoole (s : Struct) : BuildM (Array BCmd) := do
         pushBoundVar "s"
         let sE ← resolveVar "s"
         let bytes ← applyDtor destructorName sE
-        let lenF := Synth.fixedArrayLenFact bytes n
-        let rng ← u8RangeFacts (arrayElemTyp? fty) n (do applyDtor destructorName (← resolveVar "s"))
-        pure (rng.foldl Bld.boolAnd lenF)
+        pure (Synth.fixedArrayLenFact bytes n)
       let wfBindings := BooleDDM.Bindings.mkBindings default (ann #[
         BooleDDM.Binding.mkBinding default (ann "s") (BooleDDM.TypeP.expr (fvarTy dtIdx))])
       -- Declared, not defined: a defined function is a macro to the SMT
@@ -3886,8 +3859,9 @@ partial def declToBoole (env : VarEnv) (projLayouts : List ProjLayout)
     -- A 32-element literal reaches the solver as 32 nested `Sequence.build`s
     -- and every fact about the constant needs that chain unfolded (which the
     -- Lean replay cannot afford); the two axioms state the same information.
-    let litConst? : Option (Ident × String × List Int) :=
-      if !Flags.literalConstsAsAxioms () || !f.inputs.isEmpty then none else
+    let litAsAxioms := (← getSynthConfig).literalConstsAsAxioms
+    let litConst? : Option (Ident × String × List (Int × Typ)) :=
+      if !litAsAxioms || !f.inputs.isEmpty then none else
       let rec unwrap : Exp → Exp
         | .Unary (.Box _) e => unwrap e
         | .Unary (.Unbox _) e => unwrap e
@@ -3896,14 +3870,17 @@ partial def declToBoole (env : VarEnv) (projLayouts : List ProjLayout)
       | some (.StructCtor dt [(field, v)]) =>
         match unwrap v with
         | .ArrayLiteral elems =>
-          let vals := elems.filterMap fun e => match unwrap e with
-            | .Const (.Int i) _ => some i
+          let consts := elems.filterMap fun e => match unwrap e with
+            | .Const (.Int i) ty => some (i, ty)
             | _ => none
-          if vals.length == elems.length then some (dt, field, vals) else none
+          if consts.length == elems.length then some (dt, field, consts) else none
         | _ => none
       | _ => none
     match litConst? with
-    | some (dt, field, vals) =>
+    | some (dt, field, consts) =>
+      -- Each element is rendered at its own type (a `u8` is `bv{8}(v)`).
+      let lit (c : Int × Typ) := expToBooleFlat env (some c.2) (.Const (.Int c.1) c.2)
+      let vals := consts.map (·.1)
       let cmds ← specFnToBoole env false f
       let fIdx ← resolveFreeVar (identToBoole f.name)
       let dtorName := datatypeDestructorNameOf dt field
@@ -3914,16 +3891,16 @@ partial def declToBoole (env : VarEnv) (projLayouts : List ProjLayout)
         let kE ← resolveVar "k"
         let inRange := Bld.boolAnd (Bld.intLe (Bld.intConst 0) kE) (Bld.intLt kE (Bld.intConst vals.length))
         let bytes ← applyDtor dtorName (Bld.fvar fIdx)
-        let sel := arraySelect bytes kE
-        let rhs := match vals with
-          | v :: rest => if rest.all (· == v) then Bld.intConst v else Bld.intConst v
-          | [] => Bld.intConst 0
+        let sel := arraySelect (← getSynthConfig).totalSelect bytes kE
+        let rhs ← match consts with
+          | c :: _ => lit c
+          | [] => pure (Bld.intConst 0)
         pure (forallExpr #[("k", intTy)] (Bld.boolImplies inRange (Bld.eq sel rhs)))
       let uniform := match vals with | v :: rest => rest.all (· == v) | [] => true
       let elemAxs ← if uniform then pure [elemAx] else
-        vals.zipIdx.mapM fun (v, k) => do
+        consts.zipIdx.mapM fun (c, k) => do
           let bytes ← applyDtor dtorName (Bld.fvar fIdx)
-          pure (Bld.eq (arraySelect bytes (Bld.intConst k)) (Bld.intConst v))
+          pure (Bld.eq (arraySelect (← getSynthConfig).totalSelect bytes (Bld.intConst k)) (← lit c))
       let fnName := identToBoole f.name
       let axs := (lenAx :: elemAxs).zipIdx.map fun (e, k) =>
         (.command_axiom default VerusLean.Boole.Builder.noMd (someLabel s!"{fnName}_lit_{k}") e : BCmd)
@@ -3984,7 +3961,7 @@ partial def declToBoole (env : VarEnv) (projLayouts : List ProjLayout)
           let elts ← synthVariantRequires variantReqs
           -- Fixed-array/wrapper length `requires` then `recommends`, both
           -- shared with `specFnToBoole`.
-          let elts ← specFnParamLenElts f.inputs elts f.isRecursive
+          let elts ← specFnParamLenElts f.inputs elts
           let elts ← specFnRecommendsElts envLocal f elts
           let elts := joinSpecFnRequires elts
           -- Thread the source `decreases` measure into the mutual-rec
@@ -4120,20 +4097,6 @@ private def buildAssocTypeResolution (decls : List Decl) : Std.HashMap String Ty
     `(destructor name, N)` — e.g. `Scalar([u8; 32])` ⇒ `scalar ↦ ("scalar..bytes", 32)`,
     matching the wrapper-synonym branch of `structToBoole`.  Lets parameter/return
     length contracts be stated on the destructor (`length(scalar..bytes(x))==32`). -/
-private def buildWrapperElemTy (decls : List Decl) : Std.HashMap String Typ := Id.run do
-  let mut m : Std.HashMap String Typ := {}
-  for d in decls do
-    match d with
-    | .struct s =>
-      match s.fields with
-      | [(_, fty)] =>
-        match arrayFixedLen? fty, arrayElemTyp? fty with
-        | some _, some et => m := m.insert (datatypeNameOf s.name) et
-        | _, _ => pure ()
-      | _ => pure ()
-    | _ => pure ()
-  return m
-
 private def buildWrapperInfo (decls : List Decl) : Std.HashMap String (String × Nat) := Id.run do
   let mut m : Std.HashMap String (String × Nat) := {}
   for d in decls do
@@ -4194,7 +4157,7 @@ def declsToBooleProgram (decls : List Decl) :
   modify fun c => { c with assocTypeResolution := buildAssocTypeResolution decls }
   -- Wrapper-struct length info, stated on the destructor so the contract matches
   -- how bodies index the wrapper (see `wrapperLenSpecElts`).
-  modify fun c => { c with wrapperInfo := buildWrapperInfo decls, wrapperElemTy := buildWrapperElemTy decls }
+  modify fun c => { c with wrapperInfo := buildWrapperInfo decls }
   -- Struct field and enum variant layouts, so length facts recurse through
   -- datatype selector paths (`componentLenFacts`).
   modify fun c => { c with structFieldInfo := buildStructFieldInfo decls }
