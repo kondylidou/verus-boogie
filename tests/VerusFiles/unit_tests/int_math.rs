@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: B2 "`int` (mathematical)" (all green).
 // Demonstrates: the ghost `int` type is infinite-precision — products that
 // would overflow any fixed width stay exact, and ordering is unbounded.

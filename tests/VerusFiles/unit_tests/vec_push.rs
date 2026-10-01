@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // Demonstrates: executable `Vec::push` lowers to
 // `out := Sequence.build(out, value)` and preserves Verus's sequence-view
 // append contract.

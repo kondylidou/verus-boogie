@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: B4 "`choose` operator" ([TRANS-choose] #1365, all green).
 // Demonstrates: `choose|x| P(x)` selects a witness; once existence is
 // established, the chosen value satisfies the predicate. The predicate is a

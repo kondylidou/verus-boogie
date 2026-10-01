@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: A1 "bool" (all green, stages 1-8).
 // Demonstrates: boolean values and the logical connectives lower to Boole
 // `bool` and discharge end-to-end.

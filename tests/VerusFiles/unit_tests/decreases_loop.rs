@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: B5 "`decreases` - loop-level" ([CORE-decreases], all green).
 // Demonstrates: a loop carries a native `while ... decreases ...` measure, and
 // Strata enforces the non-negativity + strict-decrease obligations.

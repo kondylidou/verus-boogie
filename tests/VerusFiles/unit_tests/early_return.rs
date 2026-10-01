@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: A4 "Early `return`" (#871, all green).
 // Demonstrates: an early `return` lowers to a native Boole `exit <proc>;`, and
 // the post-condition holds on both the early and the fall-through path.

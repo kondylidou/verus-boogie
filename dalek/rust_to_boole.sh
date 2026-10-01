@@ -50,7 +50,7 @@ DALEK_LITE=$(cd "$DALEK_LITE" && pwd)
 STRATA_BOOLE=$(cd "$STRATA_BOOLE" && pwd)
 VERUS_BIN=$(cd "$VERUS_BIN" && pwd)
 
-HERE=$(cd "$(dirname "$0")" && pwd)                          # <verus-boogie>/dalek
+HERE=$(cd "$(dirname "$0")" && pwd)                          # <verus-boole>/dalek
 VERUS_LEAN=$HERE/../.lake/build/bin/verus-lean
 JSON_DIR=$HERE/export_json
 OUT=$HERE/out/$FN.boole.st

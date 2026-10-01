@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: B1 "`#[verifier::external]`" (all green).
 // Demonstrates: an `#[verifier::external]` item is invisible to Verus (dropped
 // from translation entirely), even when its body uses unsupported features

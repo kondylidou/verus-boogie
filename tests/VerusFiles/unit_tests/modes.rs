@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: B1 "`spec` / `proof` / `exec` modes" (all green).
 // Demonstrates: a `spec` function (-> Boole `function`), a `proof` lemma, and an
 // `exec` function (-> Boole `procedure`) interoperate end-to-end.

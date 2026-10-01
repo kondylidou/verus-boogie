@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: A1 "Bitwise ops on bvN (& | ^ << >> >>s ~)" (#970, all green).
 // Demonstrates: the unsigned bitvector bitwise operators lower to native
 // Boole/Core bv ops and the resulting obligations discharge in Strata via cvc5's

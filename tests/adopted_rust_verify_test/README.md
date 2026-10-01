@@ -5,7 +5,7 @@ This directory holds local Verus shards adopted from
 
 These files are:
 - hand-extracted from the upstream harness-style `rust_verify_test` sources
-- simplified into standalone `.rs` inputs that `verus-boogie` can run directly
+- simplified into standalone `.rs` inputs that `verus-boole` can run directly
 - treated as part of the local `vlir-tests` suite by `tests/run_tests.sh` and
   `tests/regress_examples.sh`
 

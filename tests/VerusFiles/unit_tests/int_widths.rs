@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: A1 "Fixed-width ints -> bitvectors" (all green).
 // Demonstrates: every fixed-width integer type round-trips through its `bv{N}`
 // model (u8..u64, i8..i64, usize/isize), and bitvector arithmetic is faithful

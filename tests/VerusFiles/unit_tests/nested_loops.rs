@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: A4 "Nested loops" (all green).
 // Demonstrates: an inner `while` loop (with its own invariant + measure) nested
 // inside an outer one gets fresh Core block labels, so both loops verify.

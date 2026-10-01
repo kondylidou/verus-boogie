@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: A4 "`let` / `let mut` bindings" (all green).
 // Demonstrates: both `let` and `let mut` collapse to a mutable Boole `var`;
 // reassignment of a `let mut` binding is tracked.

@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: A2 "usize/isize loop counters as seq indices"
 // ([TRANS-loop-counter-int], all green).
 // Demonstrates: a `usize` loop counter used to index a fixed-size array is

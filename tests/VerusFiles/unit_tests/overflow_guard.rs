@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: B2 "Numeric `HasType` overflow guards" (RESOLVED, all green).
 // Demonstrates: an exec fixed-width addition raises an overflow VC that lowers
 // to an explicit int-domain range predicate

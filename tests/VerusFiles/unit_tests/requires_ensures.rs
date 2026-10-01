@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: B1 "`requires` / `ensures` contracts" (all green).
 // Demonstrates: a precondition is assumed on entry and a postcondition is
 // proved on exit; a caller must establish the callee's `requires`.

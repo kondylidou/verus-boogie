@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md rows:
 //   A5 "Structural recursion (over datatypes)" (claimed all green)
 //   B5 "decreases - function (structural @[cases])" (claimed all green)

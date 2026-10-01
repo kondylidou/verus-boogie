@@ -30,7 +30,7 @@ Clone this repository and its two siblings into one workspace directory:
 
 ```bash
 # This repository.
-git clone -b boole https://github.com/ChengZ3/verus-boogie.git
+git clone -b boole https://github.com/kondylidou/verus-boole.git
 
 # The Strata Boole dialect and verifier.
 git clone https://github.com/strata-org/Strata-Boole.git
@@ -43,7 +43,7 @@ Your workspace should look like this:
 
 ```text
 <workspace>/
-  verus-boogie/     # this repository
+  verus-boole/     # this repository
   Strata-Boole/
   verus/            # only needed for the Verus export step
 ```

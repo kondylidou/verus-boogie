@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: B5 "`decreases` - function (int-valued termination)".
 // Demonstrates: a recursive spec function measured by an int carries a defining
 // axiom in the Boole output, so a caller can evaluate it at a concrete argument.

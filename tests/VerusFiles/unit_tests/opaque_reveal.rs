@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: B6 "`opaque` + `reveal` (non-generic)" (all green).
 // Demonstrates: an `#[verifier::opaque]` spec function is an uninterpreted
 // symbol until `reveal` makes its body visible (lowered to `assume forall`).

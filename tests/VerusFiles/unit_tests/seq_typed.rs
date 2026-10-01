@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: B3 "Typed seq literals/empty
 // (Sequence.of_bv8, Sequence.empty_bv8)" ([SURFACE-sequence-empty], all green).
 // Demonstrates: a concrete-element-typed `Seq<u8>` literal and a typed empty

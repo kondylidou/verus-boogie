@@ -24,7 +24,7 @@ Solver success is **not** used to classify faithfulness.
     abstract `Summarizer_summary` obligation plus cvc5 timeouts.
     `b5_minimal` targeted verify was interrupted after several silent solver
     minutes, so no obligation count is recorded.
-- **automated refresh** (`verus-boogie @ f959ae7` plus the
+- **automated refresh** (`verus-boole @ f959ae7` plus the
   associated-type-resolution working-tree changes; `Strata`
   `pr/casts-boole @ fff49d4e3` plus its current working-tree fixes; solver:
   `cvc5`):
@@ -777,7 +777,7 @@ erasure, or name-collision semantics.
   reach the Core quantifier. Preserving triggers end-to-end needs both a
   translator change (emit `forall_unicodeT` with the VLIR `Quant` groups)
   **and** a Strata-Boole change (thread them through `toCoreExpr`) — a Strata
-  PR, not verus-boogie alone.
+  PR, not verus-boole alone.
 - Logical content of the assertion is preserved; only the SMT instantiation
   hint is lost. May affect verification performance or completeness for
   trigger-sensitive proofs.

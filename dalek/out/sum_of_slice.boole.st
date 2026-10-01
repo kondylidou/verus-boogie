@@ -65,6 +65,7 @@ spec {
 {
   var n : int;
   var acc : Scalar;
+  assume Sequence.length(scalars) <= 18446744073709551615;
   n := Sequence.length(scalars);
   acc := Scalar_ZERO;
   for i : int := 0 to Sequence.length(scalars) - 1

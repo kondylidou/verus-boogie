@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: B4 "assert(P) by (... as <name>) labels"
 // ([TRANS-assert-label], RESOLVED 2026-06-22, all green).
 // Demonstrates: a source `by (lean_proof as <name>)` label is preserved through

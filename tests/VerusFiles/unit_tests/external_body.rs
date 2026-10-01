@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: B1 "`external_body` / trusted specs" (all green).
 // Demonstrates: an `#[verifier::external_body]` function is trusted — its body
 // is not verified (emitted with the `assume false;` convention) but its

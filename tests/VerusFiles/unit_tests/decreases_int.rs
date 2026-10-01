@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: B5 "`decreases` - function (int-valued termination)"
 // ([CORE-decreases], all green; verified 2026-06-22).
 // Demonstrates: a recursive spec function with an int-valued `decreases abs(i)`

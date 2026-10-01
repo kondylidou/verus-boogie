@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // Demonstrates the Vec operations that share a name shape with the residual
 // `Vec_*` drop rule and therefore must be lowered before it:
 //   * `Vec::new()` / `Vec::with_capacity(n)` -> `Sequence.empty`

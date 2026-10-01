@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: A3 "Arrays / fixed-size array literals" (all green).
 // Demonstrates: fixed-size array literals lower to a concrete `Sequence`, and
 // element indexing plus (in)equality over them discharge end-to-end.

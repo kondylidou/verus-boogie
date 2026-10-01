@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: A5 "Mutual recursion (over datatypes)" (#599, claimed all green).
 // Demonstrates: two spec functions that mutually recurse over a pair of
 // mutually-recursive datatypes (Tree / Forest), each with a structural

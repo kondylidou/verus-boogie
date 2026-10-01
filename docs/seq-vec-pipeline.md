@@ -1,7 +1,7 @@
 # Seq and Vec Translation Pipeline
 
 This document describes the **live** Seq/Vec translation path in
-`verus-boogie`: which pieces come directly from Verus SST (JSON), which come
+`verus-boole`: which pieces come directly from Verus SST (JSON), which come
 from the text Seq prelude, which are synthesized by the translator, and which
 operations lower directly to Boole/Strata built-ins without emitting
 declarations.

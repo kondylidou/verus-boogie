@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: A3 "References (`&` / `&mut`)" (all green).
 // Demonstrates: shared and mutable references erase to plain values
 // (verification-equivalent); `&mut` state is tracked via `final(...)`/`old(...)`.

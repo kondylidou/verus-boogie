@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // Companion to nested_loops.rs, which uses `u32` counters and so never reaches
 // `IntPromotion`.  Here both counters are `usize` used as sequence indices, so
 // both are retyped to `Int` and both qualify for the synthesized

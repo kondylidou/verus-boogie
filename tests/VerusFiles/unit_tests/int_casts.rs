@@ -1,4 +1,4 @@
-// UNIT TEST — authored for verus-boogie; NOT adopted from the Verus repo.
+// UNIT TEST — authored for verus-boole; NOT adopted from the Verus repo.
 // FEATURE_SUPPORT_MATRIX.md row: A2 "bv<->int / width casts (`as`)" (#1217, all green).
 // Demonstrates: native `as_bv<w>` width-widening casts and `as_int` (bv->int)
 // casts preserve the source `as` semantics end-to-end.
