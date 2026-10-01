@@ -181,6 +181,7 @@ def synthConfigFromEnv : IO Context.SynthConfig := do
   let off := (raw.splitOn ",").map (·.trim) |>.filter (· != "")
   pure {
     fixedArrayLengths := !off.contains "fixedArrayLengths"
+    seqLenBounds      := !off.contains "fixedArrayLengths"
     loopLowerBound    := !off.contains "loopLowerBound"
     seqMapPrecond     := !off.contains "seqMapPrecond"
     recFnUnfold       := !off.contains "recFnUnfold"
@@ -441,10 +442,6 @@ unsafe def genBooleFromFile
   -- indices align with Strata's global context.
   let envCfg ← synthConfigFromEnv
   let synthCfg := { envCfg with
-    -- The synthesized `length == N` facts exist to discharge the bounds
-    -- obligations of array reads.  With total reads there are none, so the facts
-    -- are not emitted and contracts stay exactly as written in the Verus source.
-    fixedArrayLengths := envCfg.fixedArrayLengths && !opts.totalSelect
     totalSelect := opts.totalSelect
     literalConstsAsAxioms := opts.literalConstsAsAxioms
     inlineSpecFns := opts.inlineSpecFns }
@@ -468,7 +465,17 @@ unsafe def genBooleFromFile
   let (vecOps, vecNames) ← loadPiece (preludePlan.needsVec && vecPreludeBody?.isSome) vecPreludeBody?
   -- Order matters: Nat first — Seq bodies reference `int_to_nat` from Nat.
   let preludeNames := natNames ++ seqNames ++ vecNames
-  match Translate.translateDeclsWithPrelude allDecls preludeNames synthCfg with
+  -- The `length == N` facts that stand in for the type `[T; N]` are emitted only
+  -- when the program uses them.  Translate without them first; if a checked
+  -- operation or a length was applied to a fixed-size array, translate again
+  -- with them.
+  let translate := fun cfg => Translate.translateDeclsWithPrelude allDecls preludeNames cfg
+  let translated := match translate { synthCfg with fixedArrayLengths := false } with
+    | .ok (cmds, ctx) =>
+      if synthCfg.fixedArrayLengths && ctx.fixedArrayLenUsed then translate synthCfg
+      else .ok (cmds, ctx)
+    | .error e => .error e
+  match translated with
   | .error e => failWith e
   | .ok (cmds, finalCtx) =>
     -- Filter out user commands whose names are already in the prelude

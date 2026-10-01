@@ -841,14 +841,26 @@ def arraySelect (total : Bool) (s i : BExpr) : BExpr :=
 /-- (`--total-select`) Is this indexed operand a fixed-size array `[T; N]`:
     the view of a variable of that type, a boxed array, or a struct field of
     array type?  Such a read (`a@[i]`, `a[i]`) is total. -/
-partial def isFixedArrayOperand (total : Bool) (env : VarEnv) (bound : BoundEnv) (e : Exp) : Bool :=
-  total &&
+partial def isFixedArray (env : VarEnv) (bound : BoundEnv) (e : Exp) : Bool :=
   match unwrapViewCall e with
-  | .Unary (.Box ty) e => (arrayFixedLen? ty).isSome || isFixedArrayOperand total env bound e
-  | .Unary (.Unbox _) e | .Unary .Trigger e => isFixedArrayOperand total env bound e
+  | .Unary (.Box ty) e => (arrayFixedLen? ty).isSome || isFixedArray env bound e
+  | .Unary (.Unbox _) e | .Unary .Trigger e => isFixedArray env bound e
   | .Var v => ((boundType? bound v).orElse (fun _ => env.get? v)).any (fun ty => (arrayFixedLen? ty).isSome)
   | .Unary (.Proj dt _ field _ _) _ => (structFieldExpectedType? env dt field).any (fun ty => (arrayFixedLen? ty).isSome)
   | _ => false
+
+def isFixedArrayOperand (total : Bool) (env : VarEnv) (bound : BoundEnv) (e : Exp) : Bool :=
+  total && isFixedArray env bound e
+
+/-- Record that a checked sequence operation, or a length, is applied to
+    `operand`.  If it is a fixed-size array, or its type is unknown, the
+    `length == N` facts are needed (`BuildCtx.fixedArrayLenUsed`). -/
+def noteLenUse (env : VarEnv) (bound : BoundEnv) (operand : Exp) : BuildM Unit := do
+  let mayBeFixed := isFixedArray env bound operand ||
+    match inferComparableTyp? env bound (unwrapViewCall operand) with
+    | some ty => (arrayFixedLen? ty).isSome
+    | none => true
+  if mayBeFixed then modify fun c => { c with fixedArrayLenUsed := true }
 
 /-- `select` or, for a fixed-size array operand under `--total-select`, `select!`. -/
 def selectFor (total : Bool) (env : VarEnv) (bound : BoundEnv) (operand : Exp) (s i : BExpr) : BExpr :=
@@ -1187,7 +1199,9 @@ partial def expToBoole (env : VarEnv) (bound : BoundEnv)
   | .Binary .Index lhs rhs => do
     let seqExpr ← expToBoole env bound none lhs
     let intIdx ← expToBoole env bound (some .Int) rhs
-    coerceIndexedResult env bound expected? lhs (selectFor (← getSynthConfig).totalSelect env bound lhs seqExpr intIdx)
+    let total := (← getSynthConfig).totalSelect
+    unless isFixedArrayOperand total env bound lhs do noteLenUse env bound lhs
+    coerceIndexedResult env bound expected? lhs (selectFor total env bound lhs seqExpr intIdx)
   | .Binary op lhs rhs => do
     -- Run arith in `int` when the context demands int or any subtree
     -- mixes int and bv operands. Otherwise bv overflow corrupts the
@@ -1404,6 +1418,7 @@ partial def expToBoole (env : VarEnv) (bound : BoundEnv)
           else targetInfo?.map (fun (w, signed) => bitTypOfInfo w signed)
         expToBoole env bound innerExpected? e
       | .Length =>
+        noteLenUse env bound e
         let seqExpr ← expToBoole env bound none e
         coerceNumeric (some .int) (expected?.bind numKindOfTyp?) (seqLength seqExpr)
       | _ => expToBoole env bound expected? e
@@ -1578,7 +1593,9 @@ partial def expToBoole (env : VarEnv) (bound : BoundEnv)
       | [arrayArg, indexArg] =>
         let arrayExpr ← expToBoole env bound none arrayArg
         let intIdx ← expToBoole env bound (some .Int) indexArg
-        coerceIndexedResult env bound expected? arrayArg (arraySelect (← getSynthConfig).totalSelect arrayExpr intIdx)
+        let total := (← getSynthConfig).totalSelect
+        unless total do noteLenUse env bound arrayArg
+        coerceIndexedResult env bound expected? arrayArg (arraySelect total arrayExpr intIdx)
       | _ => mkFallback
     else if isArrayFillForCopyTypesName fname then
       match argsFiltered with
@@ -1620,6 +1637,7 @@ partial def expToBoole (env : VarEnv) (bound : BoundEnv)
       -- dropped by `pruneUnreferencedVstdSpecs`.
       match argsFiltered with
       | [sliceArg] =>
+        noteLenUse env bound sliceArg
         let sliceExpr ← expToBoole env bound none sliceArg
         let intLen := seqLength sliceExpr
         coerceNumeric (some .int) (expected?.bind numKindOfTyp?) intLen
@@ -1632,6 +1650,7 @@ partial def expToBoole (env : VarEnv) (bound : BoundEnv)
       | [sliceArg, indexArg] =>
         let sliceExpr ← expToBoole env bound none sliceArg
         let intIdx ← expToBoole env bound (some .Int) indexArg
+        noteLenUse env bound sliceArg
         coerceIndexedResult env bound expected? sliceArg (Bld.seqSelect sliceExpr intIdx)
       | _ => mkFallback
     else if isViewName fname then
@@ -1664,6 +1683,7 @@ partial def expToBoole (env : VarEnv) (bound : BoundEnv)
       match argsFiltered with
       | [arg] =>
         let arg' := if isSeqLenSpecName fname then arg else unwrapViewCall arg
+        noteLenUse env bound arg'
         let seqExpr ← expToBoole env bound none arg'
         let intLen := seqLength seqExpr
         match expected?.bind numKindOfTyp? with
@@ -1681,7 +1701,9 @@ partial def expToBoole (env : VarEnv) (bound : BoundEnv)
       | [vArg, iArg] =>
         let seqExpr ← expToBoole env bound none (unwrapViewCall vArg)
         let intIdx ← expToBoole env bound (some .Int) iArg
-        let selected := selectFor (← getSynthConfig).totalSelect env bound vArg seqExpr intIdx
+        let total := (← getSynthConfig).totalSelect
+        unless isFixedArrayOperand total env bound vArg do noteLenUse env bound vArg
+        let selected := selectFor total env bound vArg seqExpr intIdx
         coerceIndexedResult env bound expected? vArg selected
       | _ => mkFallback
     else if fnameStr == "Seq_index" then
@@ -1695,6 +1717,7 @@ partial def expToBoole (env : VarEnv) (bound : BoundEnv)
           let i ← expToBoole env bound (some .Int) iArg
           coerceIndexedResult env bound expected? sArg (Bld.seqSelectTotal s i)
         else
+        noteLenUse env bound sArg
         let selected ← mkSeqBuiltinCall "select"
           [(sArg, lookupFnParamTypeFull env fnameStr 0), (iArg, some .Int)]
         coerceIndexedResult env bound expected? sArg selected
@@ -1703,6 +1726,7 @@ partial def expToBoole (env : VarEnv) (bound : BoundEnv)
       match argsFiltered with
       | [sArg] =>
         let s ← expToBoole env bound (lookupFnParamTypeFull env fnameStr 0) sArg
+        noteLenUse env bound sArg
         let zero := intConst 0
         let selectIdx ← resolveFreeVar "Sequence.select"
         let selected := Bld.appN (Bld.fvar selectIdx) [s, zero]
@@ -1712,6 +1736,7 @@ partial def expToBoole (env : VarEnv) (bound : BoundEnv)
       match argsFiltered with
       | [sArg] =>
         let s ← expToBoole env bound (lookupFnParamTypeFull env fnameStr 0) sArg
+        noteLenUse env bound sArg
         let one := intConst 1
         let selected := Bld.appN (Bld.fvar (← resolveFreeVar "Sequence.select"))
           [s, intSub (seqLength s) one]
@@ -1742,6 +1767,7 @@ partial def expToBoole (env : VarEnv) (bound : BoundEnv)
       | [sArg, iArg, vArg] =>
         let elemTy? := seqArgExpected?.bind seqElemTyp?
             <|> lookupFnParamTypeFull env fnameStr 2
+        noteLenUse env bound sArg
         mkSeqBuiltinCall "update"
           [(sArg, seqArgExpected?), (iArg, some .Int), (vArg, elemTy?)]
       | _ => mkFallback
@@ -1755,11 +1781,13 @@ partial def expToBoole (env : VarEnv) (bound : BoundEnv)
     else if fnameStr == "Seq_take" then
       match argsFiltered with
       | [sArg, nArg] =>
+        noteLenUse env bound sArg
         mkSeqBuiltinCall "take" [(sArg, seqArgExpected?), (nArg, some .Int)]
       | _ => mkFallback
     else if fnameStr == "Seq_skip" then
       match argsFiltered with
       | [sArg, nArg] =>
+        noteLenUse env bound sArg
         mkSeqBuiltinCall "skip" [(sArg, seqArgExpected?), (nArg, some .Int)]
       | _ => mkFallback
     else if fnameStr == "Seq_add" then
@@ -1771,6 +1799,7 @@ partial def expToBoole (env : VarEnv) (bound : BoundEnv)
     else if fnameStr == "Seq_subrange" then
       match argsFiltered with
       | [sArg, startArg, endArg] =>
+        noteLenUse env bound sArg
         let s ← expToBoole env bound seqArgExpected? sArg
         let start ← expToBoole env bound (some .Int) startArg
         let stop ← expToBoole env bound (some .Int) endArg
@@ -1798,6 +1827,7 @@ partial def expToBoole (env : VarEnv) (bound : BoundEnv)
     else if fnameStr == "Seq_lib_drop_last" then
       match argsFiltered with
       | [sArg] =>
+        noteLenUse env bound sArg
         let s ← expToBoole env bound seqArgExpected? sArg
         let one := intConst 1
         let lenMinusOne := intSub (seqLength s) one
@@ -1806,6 +1836,7 @@ partial def expToBoole (env : VarEnv) (bound : BoundEnv)
     else if fnameStr == "Seq_lib_remove" then
       match argsFiltered with
       | [sArg, iArg] =>
+        noteLenUse env bound sArg
         let s ← expToBoole env bound seqArgExpected? sArg
         let i ← expToBoole env bound (some .Int) iArg
         let one := intConst 1
@@ -2067,6 +2098,7 @@ private partial def lowerProjectedAssignRhsToRoot
   | .Index base index, rhs => do
     let container ← lvalueReadExprToBoole env base
     let intIdx ← expToBoole env [] (some .Int) index
+    modify fun c => { c with fixedArrayLenUsed := true }
     let updatedContainer := Bld.seqUpdate container intIdx rhs
     lowerProjectedAssignRhsToRoot env projLayouts base updatedContainer
 
@@ -2170,6 +2202,8 @@ partial def stmToBoole (env : VarEnv) (projLayouts : List ProjLayout)
           let elemTy? := arrayElemTyp? containerTy <|> vecElemTyp? containerTy
             <|> seqElemTyp? containerTy
           let valueExpr ← expToBoole env [] elemTy? valueArg
+          if (arrayFixedLen? containerTy).isSome then
+            modify fun c => { c with fixedArrayLenUsed := true }
           let updated ←
             match arrayElemTyp? containerTy with
             | some _ => pure (Bld.seqUpdate containerExpr intIdx valueExpr)
@@ -3455,7 +3489,7 @@ def execFnToBoole (env : VarEnv) (projLayouts : List ProjLayout) (mutArgMap : Mu
         -- Bodies rely on it to discharge the increment overflow guards Verus
         -- emits for index loops (`assert i + 1 <= usize::MAX`).  Spec `Seq<T>`
         -- is genuinely unbounded and deliberately does not match.
-        let seqLenBoundAssumes ← if (← getSynthConfig).fixedArrayLengths then
+        let seqLenBoundAssumes ← if (← getSynthConfig).seqLenBounds then
             f.inputs.filterMapM fun (name, ty) =>
               if isUsizeLenSeqTyp ty then do
                 let pExpr ← resolveVar name

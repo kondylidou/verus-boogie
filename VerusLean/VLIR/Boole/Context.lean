@@ -87,6 +87,10 @@ structure SynthConfig where
       paths, mutated-in-loop length invariants, and the guarded
       `<fn>_ret_len` / `low_bits_mask` ground axioms. -/
   fixedArrayLengths : Bool := true
+  /-- `Sequence.length(s) <= usize::MAX` for slice and `Vec` parameters: Rust's
+      guarantee that a length fits in a `usize`.  Independent of whether the
+      program uses fixed-size arrays. -/
+  seqLenBounds : Bool := true
   /-- For-range loop lower-bound invariant `lo <= i` (Strata's `for` hands the
       body only the upper bound `i <= hi`, via the loop guard). -/
   loopLowerBound : Bool := true
@@ -132,6 +136,10 @@ structure BuildCtx where
   /-- Feature toggles for synthesized verification aids; all-on by default
       (current behavior).  See `SynthConfig`. -/
   synthConfig : SynthConfig := {}
+  /-- Set when the program applies a checked sequence operation to, or takes the
+      length of, a value that is (or may be) a fixed-size array `[T; N]`.  The
+      `length == N` facts for such values are needed only then (see `Main`). -/
+  fixedArrayLenUsed : Bool := false
   /-- Resolution table for trait associated-type projections.  Verus lowers
       `<Self as Trait>::Assoc` to a nominal type carrier (parsed as `Typ.Struct`)
       that no Boole declaration backs; this maps that carrier's Boole type name

@@ -7,7 +7,7 @@ Last updated 2026-10-01.
 `dalek/rust_to_boole.sh` takes dalek-lite's `Scalar::sum_of_slice` from Rust to a checked
 Lean file. Setup and expected output: `DALEK_BENCHMARK.md` in Strata-Boole.
 
-- Boole program: 82 lines. `u8` is `bv8`, Verus `nat` is Boole's native `nat`, and the
+- Boole program: 83 lines. `u8` is `bv8`, Verus `nat` is Boole's native `nat`, and the
   contract of `sum_of_slice` has the same clauses as the Verus source.
 - cvc5: 36/36 obligations.
 - Lean kernel: all 36. The 28 program goals by `inline_boole_defs; smt`; the 8 goals of
@@ -30,10 +30,14 @@ Each of these is a flag the demo passes. None is on by default.
   prefix-length parameter, and the `=~=` hints that existed for it are dropped.
 - `--literal-consts-as-axioms`: `Scalar::ZERO` becomes a constant with a length axiom and
   an element axiom. Only a uniform array has been exercised.
-- `--total-select`: reads of `[T; N]` are total and no `length == N` facts are emitted,
-  so the contract has the same clauses as the Verus source. This is a patch, see the
-  first open item.
+- `--total-select`: reads of `[T; N]` are total. This is a patch, see the first open
+  item.
 - `--short-names`: names only.
+
+Without any flag, the translator states two Rust typing facts that Boole's types cannot
+carry. `length == N` for a `[T; N]` value is emitted only when the program applies a
+checked operation to such a value or takes its length (`sum_of_slice` does neither).
+`length <= usize::MAX` for a slice or `Vec` parameter is always assumed.
 
 Also: the unfolding axiom of a recursive spec function is guarded by its `recommends`,
 and a recursive spec function has a `decreases` only if its defining module was exported.
@@ -42,19 +46,14 @@ All of the above is verified on `sum_of_slice` only.
 
 ## Open
 
-1. **`--total-select` is a patch over two gaps.**
-   - Reads. In Verus a spec read (`Seq::index`) is total, an exec read
-     (`array_index_get`) is checked, and both return the same element. The translator
-     cannot follow that yet, because Strata does not relate `Sequence.select` and
-     `Sequence.select!`: even in bounds, `select(s, i) == select!(s, i)` is not provable,
-     so a fact stated with one read does not apply to the other. Tried on the local
-     branch `wip/reads-by-mode`: `sum_of_slice` drops to 36/39. Needs a Strata fix first.
-     Until then the translator uses one kind of read per sequence, which is too strict
-     for spec code by default and too lax for exec reads of `[T; N]` under the flag.
-   - Length facts. The flag also suppresses the `length == N` facts that stand in for
-     the type `[T; N]` (`Scalar_wf`). `sum_of_slice` verifies without them, but a
-     program with a checked operation on an array would need them. Proper answers: emit
-     them only where such an operation occurs, or a fixed-size array type in Boole.
+1. **`--total-select` is a patch.** In Verus a spec read (`Seq::index`) is total, an
+   exec read (`array_index_get`) is checked, and both return the same element. The
+   translator cannot follow that yet, because Strata does not relate `Sequence.select`
+   and `Sequence.select!`: even in bounds, `select(s, i) == select!(s, i)` is not
+   provable, so a fact stated with one read does not apply to the other. Tried on the
+   local branch `wip/reads-by-mode`: `sum_of_slice` drops to 36/39. Needs a Strata fix
+   first. Until then the translator uses one kind of read per sequence, which is too
+   strict for spec code by default and too lax for exec reads of `[T; N]` under the flag.
 2. Report what `--only` stubbed, or split it into separate choices for callees and lemmas.
 3. `=~=` on sets and maps lowers to `==`. Whether to change this depends on how Strata
    ends up encoding them (native theories make `=~=` and `==` coincide).
