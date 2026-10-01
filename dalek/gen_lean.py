@@ -34,7 +34,11 @@ assert "-/" not in src and "/-" not in src
 # same name in the guard-only build and the final file: obligation ids carry byte offsets
 seed = re.sub(r"[^A-Za-z0-9]", "", fn) + "TranslatedSeed"
 guard_block = f"/-- info:\n{guard}\n-/\n#guard_msgs in\n" if guard else ""
-eval_block = "" if no_eval else f'{guard_block}#eval Strata.Boole.verify "cvc5" {seed} (options := .quiet)\n'
+# The solver budget is stated here instead of left to Strata's default (10 s): with
+# bytes as bitvectors the loop-invariant obligation alone needs about that long.
+eval_block = "" if no_eval else (
+    f'{guard_block}#eval Strata.Boole.verify "cvc5" {seed}\n'
+    f'  (options := {{ Core.VerifyOptions.quiet with solverTimeout := 30 }})\n')
 # A program that uses Boole's native `nat` gets the nat library prepended by
 # Strata-Boole, and with it eight obligations about that library.  They are the
 # same for every program and are proved by hand.

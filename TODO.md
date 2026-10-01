@@ -9,7 +9,9 @@ Lean file. Setup and expected output: `DALEK_BENCHMARK.md` in Strata-Boole.
 
 - Boole program: 83 lines. `u8` is `bv8`, Verus `nat` is Boole's native `nat`, and the
   contract of `sum_of_slice` has the same clauses as the Verus source.
-- cvc5: 36/36 obligations.
+- cvc5: 36/36 obligations. One of them, the loop invariant, takes about 9 s with bytes as
+  `bv8` (under 2 s when they were modelled as `int`), which is at Strata's default limit of
+  10 s. The generated check therefore sets `solverTimeout := 30`.
 - Lean kernel: all 36. The 28 program goals by `inline_boole_defs; smt`; the 8 goals of
   Boole's nat library and lean-smt's bitvector side goals by hand (`dalek/gen_lean.py`).
 - `tests/check_working_tests.sh`: 67 passed, 15 skipped (3 Strata gaps, 12 solver
