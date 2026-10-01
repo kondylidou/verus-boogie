@@ -2895,57 +2895,6 @@ private def synthVariantRequires
       elts := elts.push (.requires_spec default noLabel (ann none) cond)
   pure elts
 
-/-- Nesting depth of an expression (constructor levels). -/
-partial def expDepth : Exp → Nat
-  | .Call _ _ exps => 1 + (exps.map expDepth).foldl max 0
-  | .CallLambda body args => 1 + max (expDepth body) ((args.map expDepth).foldl max 0)
-  | .StructCtor _ fields | .EnumCtor _ _ fields => 1 + (fields.map (fun (_, e) => expDepth e)).foldl max 0
-  | .TupleCtor _ data | .ArrayLiteral data => 1 + (data.map expDepth).foldl max 0
-  | .Unary _ e => 1 + expDepth e
-  | .Binary _ a b => 1 + max (expDepth a) (expDepth b)
-  | .If c t f => 1 + max (expDepth c) (max (expDepth t) (expDepth f))
-  | .Bind bind body =>
-    let bd := match bind with
-      | .Let _ _ rhs => expDepth rhs
-      | .Quant _ _ trigs => (trigs.map (fun g => (g.map expDepth).foldl max 0)).foldl max 0
-      | .Lambda _ => 0
-      | .Choose _ pred => expDepth pred
-    1 + max bd (expDepth body)
-  | .MatchBlock (scrut, _) body => 1 + max (expDepth scrut) (expDepth body)
-  | .Const _ _ | .Var _ => 1
-
-/-- Does the expression use a modulus operation? -/
-partial def expHasMod (e : Exp) : Bool :=
-  match e with
-  | .Binary (.Arith .EuclideanMod _) _ _ | .Binary (.Arith .TruncRem _) _ _ => true
-  | .Call _ _ exps => exps.any expHasMod
-  | .CallLambda body args => expHasMod body || args.any expHasMod
-  | .StructCtor _ fields | .EnumCtor _ _ fields => fields.any (fun (_, e) => expHasMod e)
-  | .TupleCtor _ data | .ArrayLiteral data => data.any expHasMod
-  | .Unary _ e => expHasMod e
-  | .Binary _ a b => expHasMod a || expHasMod b
-  | .If c t f => expHasMod c || expHasMod t || expHasMod f
-  | .Bind bind body =>
-    (match bind with
-      | .Let _ _ rhs => expHasMod rhs
-      | .Quant _ _ trigs => trigs.any (·.any expHasMod)
-      | .Lambda _ => false
-      | .Choose _ pred => expHasMod pred) || expHasMod body
-  | .MatchBlock (scrut, _) body => expHasMod scrut || expHasMod body
-  | .Const _ _ | .Var _ => false
-
-/-- (`--inline-spec-fns`) A non-recursive spec fn with a shallow, `mod`-free body
-    is emitted as `inline function`: Strata substitutes it at every use, so both
-    cvc5 and the Lean bridge see the definition — Verus's own transparency for
-    spec fns.  Deep bodies (a 32-term byte sum) and `mod` bodies stay ordinary
-    functions: inlined everywhere they slow every lean-smt call down, and
-    lean-smt cannot replay cvc5's modular-arithmetic proofs. -/
-def inlineSpecFn? (enabled : Bool) (f : SpecFn) : Bool :=
-  enabled && !f.isRecursive &&
-    (match f.body with
-     | some b => !expHasMod b && expDepth b <= 16
-     | none => false)
-
 /-- Like `expContainsLambda`, but ignores the closure argument of a
     `Seq::map` / `Seq::map_values` call.  Those closures are lowered by
     `emitSeqMapDecls` into ordinary recursive declarations with no surviving
@@ -3176,7 +3125,7 @@ def specFnToBoole (env : VarEnv) (emitBody : Bool) (f : SpecFn) : BuildM (List B
       -- `Seq::map` closures are excluded: they are synthesized into
       -- recursive declarations (`emitSeqMapDecls`), so they leave no
       -- lambda in the translated body.
-      let shouldInline := f.body.any expHasInlineForcingLambda || inlineSpecFn? (← getSynthConfig).inlineSpecFns f
+      let shouldInline := f.body.any expHasInlineForcingLambda
       let inlineAnn :=
         if shouldInline then ann (some (.inline default)) else ann none
       pure [.command_fndef default VerusLean.Boole.Builder.noMd name typeArgs inputBindings outputTy

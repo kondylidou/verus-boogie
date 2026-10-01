@@ -62,8 +62,6 @@ All of the above is verified on `sum_of_slice` only.
 5. lean-smt cannot replay cvc5's real-arithmetic proofs (the `pos.fromInt` termination
    goals) and leaves `(b <= c) = !(c < b)` side goals for unsigned comparisons. Both are
    worked around by hand in the generated proof.
-6. `--inline-spec-fns` exists but is unused and untested since the proof shape changed.
-7. Rename the repository to `verus-boole`.
 
 ## Lesson
 

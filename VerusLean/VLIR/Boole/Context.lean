@@ -79,9 +79,6 @@ structure SynthConfig where
   totalSelect : Bool := false
   /-- `--literal-consts-as-axioms`: see `Translate.declToBoole` (`.specFn`). -/
   literalConstsAsAxioms : Bool := false
-  /-- `--inline-spec-fns`: shallow, `mod`-free, non-recursive spec fns as Boole
-      `inline function`. -/
-  inlineSpecFns : Bool := false
   /-- Fixed-size-array `Sequence.length(_) == N` facts: parameter
       requires/entry assumes, return ensures, boundary facts on selector
       paths, mutated-in-loop length invariants, and the guarded

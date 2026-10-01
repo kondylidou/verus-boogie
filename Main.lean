@@ -338,8 +338,6 @@ structure CliOptions where
   /-- `--total-select`: fixed-size array reads as `Sequence.select!`; no synthesized
       definedness `requires` on spec fns. -/
   totalSelect : Bool := false
-  /-- `--inline-spec-fns`: shallow, `mod`-free, non-recursive spec fns as `inline function`. -/
-  inlineSpecFns : Bool := false
 
 private def parseCli : List String → Except String (CliOptions × List String)
   | "--only" :: names :: rest => do
@@ -357,8 +355,6 @@ private def parseCli : List String → Except String (CliOptions × List String)
     let (o, pos) ← parseCli rest; pure ({ o with indexByPrefix := true }, pos)
   | "--total-select" :: rest => do
     let (o, pos) ← parseCli rest; pure ({ o with totalSelect := true }, pos)
-  | "--inline-spec-fns" :: rest => do
-    let (o, pos) ← parseCli rest; pure ({ o with inlineSpecFns := true }, pos)
   | arg :: rest =>
     if arg.startsWith "--" then throw s!"unknown option {arg}"
     else do let (o, pos) ← parseCli rest; pure (o, arg :: pos)
@@ -443,8 +439,7 @@ unsafe def genBooleFromFile
   let envCfg ← synthConfigFromEnv
   let synthCfg := { envCfg with
     totalSelect := opts.totalSelect
-    literalConstsAsAxioms := opts.literalConstsAsAxioms
-    inlineSpecFns := opts.inlineSpecFns }
+    literalConstsAsAxioms := opts.literalConstsAsAxioms }
   let preludePlan := Boole.Prelude.planDecls allDecls
   -- Load each prelude piece separately so the `nat` block can be dropped when
   -- the emitted program never references it.  `nat`'s names are registered
